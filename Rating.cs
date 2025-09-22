@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime;
 
-namespace MRT;
+namespace MRP;
 
 public class Rating
 {

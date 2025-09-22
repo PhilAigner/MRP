@@ -1,34 +1,32 @@
-﻿using System;
-using System.Runtime;
-
-namespace MRT;
+﻿namespace MRP;
 
 public class User
 {
-
-	public Guid uuid { get; }
-	public string username { get; }
-	private string password;
+    public Guid uuid { get; }
+    public string username { get; }
+    private string password;
     public DateTime created { get; }
-
     public Profile profile { get; }
 
-	public User(string _username, string _password)
-	{
-        uuid = Guid.NewGuid();
-		
-		username = _username;
-        password = _password;
+    public User(string username, string password)
+    {
+        this.uuid = Guid.NewGuid();
+        this.username = username;
+        this.password = password;
+        this.created = DateTime.Now;
+        this.profile = new Profile(uuid);
+    }
 
-		created = DateTime.Now;
+    public User(Guid uuid, string username, string password, DateTime created)
+    {
+        this.uuid = uuid;
+        this.username = username;
+        this.password = password;
+        this.created = created;
+    }
 
-		profile = new Profile(this, uuid);
-	}
-
-
-	public string getPassword()
-	{
-		return password;
-	}
-	
+    public string getPassword()
+    {
+        return password;
+    }
 }

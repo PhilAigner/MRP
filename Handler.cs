@@ -1,14 +1,7 @@
-﻿using MRT;
-using System.Reflection.PortableExecutable;
-using System.Runtime.CompilerServices;
-using System.Runtime.ConstrainedExecution;
-using System.Security.Cryptography.X509Certificates;
-
-namespace MRP
+﻿namespace MRP
 {
     internal class Handler
-    {
-        
+    {   
         private List<User> users = new List<User>();
         private List<MediaEntry> entries = new List<MediaEntry>();
         private List<Rating> ratings = new List<Rating>();
@@ -38,8 +31,6 @@ namespace MRP
             res = login("USer1", "pwd");
             Guid id = register("123", "baum");
             res = login("123", "baum");
-
-
 
             return 1;
         }
