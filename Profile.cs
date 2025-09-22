@@ -5,14 +5,12 @@ namespace MRT;
 public class Profile
 {
 
-	private User user { get; }
-	private Guid uuid;
+    public Guid uuid { get; }      // of user
 
-	private int someStatistic {  get; set; }
+	public int someStatistic {  get; set; }
 
-	public Profile(User _user, Guid _uuid) 
+	public Profile(Guid _uuid) 
 	{
-		user = _user;
 		uuid = _uuid;
 	}
 }

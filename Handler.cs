@@ -31,7 +31,18 @@ namespace MRP
             //http Handler
 
 
-            
+
+            //temp userstorage
+            var userStorage = new Storage<User>("users.json");
+
+            // speichern
+            userStorage.Save(users);
+
+            // laden
+            users = userStorage.Load();
+
+
+
             //testcode:
             Boolean res = login("123", "baum");
             res = login("USer1", "wrong");
