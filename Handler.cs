@@ -1,5 +1,4 @@
-﻿using MRT;
-using System.Reflection.PortableExecutable;
+﻿using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography.X509Certificates;
@@ -47,11 +46,6 @@ namespace MRP
 
         public Guid register(string username, string password)
         {
-            //test if username already exists
-            if (users.Any(u => u.username == username))
-            {
-                return Guid.Empty;  // Username already exists
-            }
 
             //create new user
             User newUser = new User(username, password);

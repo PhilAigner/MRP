@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MRT;
+namespace MRP;
 
 public class Profile
 {
