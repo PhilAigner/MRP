@@ -7,36 +7,67 @@ namespace MRP
 {
     internal class Handler
     {
-        
-        private List<User> users = new List<User>();
-        private List<MediaEntry> entries = new List<MediaEntry>();
+        private UserRepository userRepository = new UserRepository();
+
+        private MediaRepository mediaRepository = new MediaRepository();
+
+
         private List<Rating> ratings = new List<Rating>();
 
         public Handler()
         {
-            users.Add(new User("USer1", "pwd"));
-            users.Add(new User("User2", "pwd2"));
-            users.Add(new User("User3", "pwd3"));
+            Console.WriteLine("---Users---");
 
-            entries.Add(new MediaEntry("Title1", MediaType.Movie, 2001, 18, "Action", users[0]));
-            entries.Add(new MediaEntry("Title2", MediaType.Movie, 2002, 18, "Action", users[1]));
-            entries.Add(new MediaEntry("Title3", MediaType.Movie, 2003, 18, "Action", users[2]));
+            /////////////////////////////
+            //create sample user entries
+            userRepository.AddUser(new User("USer1", "pwd"));
+            userRepository.AddUser(new User("User2", "pwd2"));
+            userRepository.AddUser(new User("User3", "pwd3"));
 
-            ratings.Add(new Rating(entries[0].uuid, users[0].uuid, 3));
+            //print all users
+            List<User> users = userRepository.GetAll();
+            foreach (var user in users)
+            {
+                Console.WriteLine($"Username: {user.username}, UUID: {user.uuid}");
+            }
+
+
+            Console.WriteLine("---Media---");
+
+            /////////////////////////////
+            //create sample media entries
+            mediaRepository.AddMedia(new MediaEntry("Title1", EMediaType.Movie, 2001, EFSK.FSK0, "Action", users[0]));
+            mediaRepository.AddMedia(new MediaEntry("Title2", EMediaType.Movie, 2002, EFSK.FSK18, "Action", users[1]));
+            mediaRepository.AddMedia(new MediaEntry("Title3", EMediaType.Movie, 2003, EFSK.FSK18, "Action", users[2]));
+
+            //print all media entries
+            List<MediaEntry> media = mediaRepository.GetAll();
+            foreach (var thing in media)
+            {
+                Console.WriteLine($"Title: {thing.title}, UUID: {thing.uuid}");
+            }
+
+
+            ////////////////////////////
+            //create sample rating data
+
+            //TODO
+            //ratings.Add(new Rating(mediaRepository.GetMediaByTitle("Title1"), users[0].uuid, 3));
         }
 
         public int Start()
         {
             //http Handler
 
-
-            
             //testcode:
-            Boolean res = login("123", "baum");
-            res = login("USer1", "wrong");
-            res = login("USer1", "pwd");
-            Guid id = register("123", "baum");
-            res = login("123", "baum");
+            UserService userService = new UserService(userRepository);
+
+            Boolean res = userService.login("123", "baum");
+            res = userService.login("USer1", "wrong");
+            res = userService.login("USer1", "pwd");
+            Guid id = userService.register("123", "baum");
+            res = userService.login("123", "baum");
+            id = userService.register("123", "baum");
 
 
 
@@ -44,25 +75,6 @@ namespace MRP
         }
 
 
-        public Guid register(string username, string password)
-        {
 
-            //create new user
-            User newUser = new User(username, password);
-            users.Add(newUser);
-
-            return newUser.uuid;
-        }
-
-        public Boolean login(string _username, string _password)
-        {
-            var user = users.FirstOrDefault(u => u.username == _username);
-            //test if user exists
-            if (user == null) return false;
-
-            //check password    TODO HASH
-            if (((User)user).getPassword() == _password) return true;
-            else return false;
-        }
     }
 }
