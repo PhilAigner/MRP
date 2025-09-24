@@ -4,15 +4,19 @@ namespace MRP;
 
 public class Profile
 {
+	public Guid uuid { get; }
 
-	private User user { get; }
-	private Guid uuid;
+    public Guid user { get; }       // the uuid of the user this profile belongs to
 
-	public int someStatistic {  get; set; }
 
-	public Profile(User _user, Guid _uuid) 
+    public int someStatistic {  get; set; }
+
+	public Profile(Guid owner) 
 	{
-		user = _user;
-		uuid = _uuid;
-	}
+		uuid = Guid.NewGuid();
+        
+        user = owner;
+
+        someStatistic = 1;
+    }
 }
