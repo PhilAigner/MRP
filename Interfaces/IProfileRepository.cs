@@ -7,6 +7,8 @@ public interface IProfileRepository
 {
     public List<Profile> GetAll();
 
+    public Guid AddProfile(Profile profile);
+
     public Profile? GetById(Guid id);
 
     public Profile? GetByOwnerId(Guid userid);

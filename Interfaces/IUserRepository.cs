@@ -5,9 +5,9 @@ namespace MRP;
 
 public interface IUserRepository
 {
-    List<User> GetAll();
+    public List<User> GetAll();
 
-    User? GetUserById(Guid id);
+    public User? GetUserById(Guid id);
 
-    bool AddUser(User user);
+    public Guid AddUser(User user);
 }

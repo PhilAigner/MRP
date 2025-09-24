@@ -10,6 +10,12 @@ public class ProfileRepository :  IProfileRepository {
     public List<Profile> GetAll() { 
         return profiles;
     }
+    public Guid AddProfile(Profile profile) {
+        //test if profile already exists
+        if (profiles.Any(p => p.uuid == profile.uuid)) return Guid.Empty;
+        profiles.Add(profile);
+        return profile.uuid;
+    }
 
     public Profile? GetById(Guid id)
     {

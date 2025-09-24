@@ -4,7 +4,6 @@ public class UserRepository : IUserRepository {
 
     private List<User> users = new List<User>();
 
-
     public List<User> GetAll()
     {
         return users;
@@ -16,14 +15,14 @@ public class UserRepository : IUserRepository {
         return user;
     }
 
-    public bool AddUser(User user)
+    public Guid AddUser(User user)
     {
         //test if user already exists
-        if (users.Any(u => u.uuid == user.uuid)) return false;
+        if (users.Any(u => u.uuid == user.uuid)) return Guid.Empty;
 
         users.Add(user);
 
-        return true;
+        return user.uuid;
     }
 
     internal User? GetUserByUsername(string username)

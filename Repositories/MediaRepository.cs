@@ -27,11 +27,11 @@ public class MediaRepository :  IMediaRepository {
         return searchResult;
     }
 
-    public bool AddMedia(MediaEntry mediaEntry) {
+    public Guid AddMedia(MediaEntry mediaEntry) {
         //test if mediaEntry already exists
-        if (mediaEntries.Any(m => m.uuid == mediaEntry.uuid)) return false;
+        if (mediaEntries.Any(m => m.uuid == mediaEntry.uuid)) return Guid.Empty;
 
         mediaEntries.Add(mediaEntry);
-        return true;
+        return mediaEntry.uuid;
     }
 }

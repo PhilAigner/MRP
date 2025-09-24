@@ -10,10 +10,12 @@ namespace MRP
     {
 
         private UserRepository users;
+        private ProfileRepository profileRepository;
 
-        public UserService(UserRepository _users)
+        public UserService(UserRepository _users, ProfileRepository _profileRepository)
         {
             users = _users;
+            profileRepository = _profileRepository;
         }
 
         public Guid register(string username, string password)
@@ -23,7 +25,7 @@ namespace MRP
             if (user != null) return Guid.Empty;
 
             //create new user
-            User newUser = new User(username, password);
+            User newUser = new User(username, password, profileRepository);
             users.AddUser(newUser);
 
             return newUser.uuid;

@@ -11,7 +11,7 @@ public interface IRatingsRepository
 
     public List<Rating>? GetByCreator(Guid userid);
 
-    public bool AddRating(Rating rating);
+    public Guid AddRating(Rating rating);
 
     public List<Rating>? GetByStarsGreaterEqlThan(int stars);
 

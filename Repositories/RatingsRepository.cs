@@ -22,12 +22,12 @@ public class RatingRepository :  IRatingsRepository {
         return searchResult;
     }
 
-    public bool AddRating(Rating rating) {
+    public Guid AddRating(Rating rating) {
         //test if mediaEntry already exists
-        if (ratingEntries.Any(r => r.uuid == rating.uuid)) return false;
+        if (ratingEntries.Any(r => r.uuid == rating.uuid)) return Guid.Empty;
 
         ratingEntries.Add(rating);
-        return true;
+        return rating.uuid;
     }
 
     public List<Rating>? GetByStarsGreaterEqlThan(int stars) {

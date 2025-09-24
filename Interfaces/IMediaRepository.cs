@@ -13,5 +13,5 @@ public interface IMediaRepository
 
     public List<MediaEntry>? GetMediaByCreator(Guid userid);
 
-    public bool AddMedia(MediaEntry mediaEntry);
+    public Guid AddMedia(MediaEntry mediaEntry);
 }

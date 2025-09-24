@@ -11,9 +11,9 @@ public class User
 	private string password;
     public DateTime created { get; }
 
-    public Profile profile { get; }
+    public Guid profileUuid { get; }
 
-	public User(string _username, string _password)
+	public User(string _username, string _password, ProfileRepository profileRepository)
 	{
         uuid = Guid.NewGuid();
 		
@@ -22,8 +22,8 @@ public class User
 
 		created = DateTime.Now;
 
-		profile = new Profile(this, uuid);
-	}
+		profileUuid = profileRepository.AddProfile(new Profile(uuid));
+    }
 
 
 	public string getPassword()
