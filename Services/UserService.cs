@@ -41,5 +41,19 @@ namespace MRP
             if (((User)user).getPassword() == _password) return true;
             else return false;
         }
+
+        public Profile? getProfile(Guid userId)
+        {
+            var profile = profileRepository.GetByOwnerId(userId);
+            return profile;
+        }
+
+        public bool editProfile(Profile newProfile) {
+            var profile = profileRepository.GetByOwnerId(newProfile.user);
+            if (profile == null) return false;
+            profileRepository.GetAll().Remove(profile);
+            profileRepository.GetAll().Add(newProfile);
+            return true;
+        }
     }
 }

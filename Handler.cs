@@ -18,6 +18,8 @@ namespace MRP
 
         public Handler()
         {
+            //SAMPLE CODE TO SHOWCASE Repositories
+
             Console.WriteLine("\n---Users---");
 
             /////////////////////////////
@@ -69,7 +71,7 @@ namespace MRP
 
         public int Start()
         {
-            //http Handler
+            
 
             //testcode:
             UserService userService = new UserService(userRepository, profileRepository);

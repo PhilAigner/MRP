@@ -16,7 +16,7 @@ public class Rating
     public String comment { get; set; }
     public DateTime createdAt { get; }
 
-    public List<User> likedBy { get; set; }
+    public List<Guid> likedBy { get; set; }
 
     public Boolean publicVisible { get; set; }
 
