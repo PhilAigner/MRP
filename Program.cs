@@ -5,7 +5,8 @@ namespace MRP
     {
         static async Task Main()
         {
-            var cs = "Host=192.177.1.69;Port=5333;Username=mrp;Password=Philipp!!;Database=mrp;Pooling=true";
+            var cs = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+
             var dbFactory = new DbConnectionFactory(cs);
 
 
