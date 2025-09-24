@@ -8,7 +8,7 @@ public class Profile
 	private User user { get; }
 	private Guid uuid;
 
-	private int someStatistic {  get; set; }
+	public int someStatistic {  get; set; }
 
 	public Profile(User _user, Guid _uuid) 
 	{

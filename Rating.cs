@@ -7,18 +7,18 @@ namespace MRP;
 public class Rating
 {
 
-	private Guid uuid { get; }
+    public Guid uuid { get; }
 
-	private Guid mediaEntry { get; }
-	private Guid user { get; }
+    public Guid mediaEntry { get; }
+    public Guid user { get; }
 
-	private int stars { get; set; }
-	private String comment { get; set; }
-	private DateTime createdAt { get; }
+    public int stars { get; set; }
+    public String comment { get; set; }
+    public DateTime createdAt { get; }
 
-    private List<User> likedBy { get; set; }
+    public List<User> likedBy { get; set; }
 
-    private Boolean publicVisible { get; set; }
+    public Boolean publicVisible { get; set; }
 
 
     public Rating(Guid _mediaEntry, Guid _user, int _stars)
