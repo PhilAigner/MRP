@@ -6,6 +6,7 @@ namespace MRP
         static async Task Main()
         {
             var cs = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+
             var dbFactory = new DbConnectionFactory(cs);
 
 
