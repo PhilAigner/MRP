@@ -20,6 +20,8 @@ namespace MRP
         {
             //SAMPLE CODE TO SHOWCASE Repositories
 
+            /*
+
             Console.WriteLine("\n---Users---");
 
             /////////////////////////////
@@ -67,6 +69,9 @@ namespace MRP
             {
                 Console.WriteLine($"Rating from: {thing.user} on {thing.mediaEntry} - {thing.stars} stars, with UUID: {thing.uuid}");
             }
+
+            */
+
         }
 
         public int Start()
@@ -74,14 +79,17 @@ namespace MRP
             
 
             //testcode:
-            UserService userService = new UserService(userRepository, profileRepository);
+            //UserService userService = new UserService(userRepository, profileRepository);
 
+            /*
             Boolean res = userService.login("123", "baum");
             res = userService.login("USer1", "wrong");
             res = userService.login("USer1", "pwd");
             Guid id = userService.register("123", "baum");
             res = userService.login("123", "baum");
             id = userService.register("123", "baum");
+            */
+
 
 
 
