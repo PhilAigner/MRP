@@ -95,9 +95,13 @@ namespace MRP
                 // User endpints
                 new UserLoginHTTPEndpoint(),
                 new UserRegisterHTTPEndpoint(userRepository, profileRepository),
-                new UserProfileHTTPEndpoint(userRepository, profileRepository),
+                new UserProfileHTTPEndpoint(userRepository, profileRepository, ratingRepository, mediaRepository),
+                
                 // Media endpoint
-                new MediaHTTPEndpoint(mediaRepository, userRepository, ratingRepository),
+                new MediaHTTPEndpoint(mediaRepository, userRepository, ratingRepository, profileRepository),
+                
+                // Ratings endpoint
+                new RatingsHTTPEndpoint(ratingRepository, userRepository, mediaRepository, profileRepository),
             };
 
             await HttpServer.RunServer("http://localhost:8081/api/", HttpEndpoints);

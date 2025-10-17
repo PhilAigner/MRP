@@ -38,7 +38,16 @@ namespace MRP
             if (user == null) return false;
 
             //check password    TODO HASH
-            if (((User)user).getPassword() == _password) return true;
+            if (((User)user).getPassword() == _password)
+            {
+                // Update login count
+                var profile = profileRepository.GetByOwnerId(user.uuid);
+                if (profile != null)
+                {
+                    profile.numberOfLogins++;
+                }
+                return true;
+            }
             else return false;
         }
 

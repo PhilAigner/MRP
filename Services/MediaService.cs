@@ -11,17 +11,33 @@ namespace MRP
 
         private MediaRepository media;
         private RatingRepository ratings;
+        private ProfileRepository profiles;
+        private ProfileStatisticsService? statisticsService;
 
-        public MediaService(MediaRepository _media, RatingRepository _ratings)
+        public MediaService(MediaRepository _media, RatingRepository _ratings, ProfileRepository _profiles)
         {
             media = _media;
             ratings = _ratings;
+            profiles = _profiles;
+            statisticsService = new ProfileStatisticsService(_profiles, _ratings, _media);
         }
 
 
         public Guid createMediaEntry(MediaEntry entry)
         {
-            return media.AddMedia(entry);
+            var result = media.AddMedia(entry);
+            
+            // Update profile statistics if media was successfully added
+            if (result != Guid.Empty)
+            {
+                var profile = profiles.GetByOwnerId(entry.createdBy.uuid);
+                if (profile != null)
+                {
+                    profile.numberOfMediaAdded++;
+                }
+            }
+            
+            return result;
         }
 
         public bool updateMediaEntry(MediaEntry entry)
@@ -37,12 +53,30 @@ namespace MRP
         {
             var existingEntry = media.GetMediaById(id);
             if (existingEntry == null) return false;
+            
+            // Update profile statistics before deletion
+            var profile = profiles.GetByOwnerId(existingEntry.createdBy.uuid);
+            if (profile != null && profile.numberOfMediaAdded > 0)
+            {
+                profile.numberOfMediaAdded--;
+            }
+            
             media.GetAll().Remove(existingEntry);
             //also remove all ratings for this media entry
             var ratingsToRemove = ratings.GetAll().Where(r => r.mediaEntry == id).ToList();
             if (ratingsToRemove == null) return true;
             foreach (var rating in ratingsToRemove)
             {
+                // Update profile statistics for each removed rating
+                var ratingUserProfile = profiles.GetByOwnerId(rating.user);
+                if (ratingUserProfile != null && ratingUserProfile.numberOfRatingsGiven > 0)
+                {
+                    ratingUserProfile.numberOfRatingsGiven--;
+                }
+                if (!string.IsNullOrWhiteSpace(rating.comment) && ratingUserProfile != null && ratingUserProfile.numberOfReviewsWritten > 0)
+                {
+                    ratingUserProfile.numberOfReviewsWritten--;
+                }
                 ratings.GetAll().Remove(rating);
             }
             return true;
@@ -52,6 +86,7 @@ namespace MRP
         {
             var existingEntry = media.GetMediaById(mediaId);
             if (existingEntry == null) return false;
+            
             //check if user has already rated this media entry
             var existingRating = ratings.GetAll().FirstOrDefault(r => r.mediaEntry == mediaId && r.user == userId);
             if (existingRating != null)
@@ -59,8 +94,22 @@ namespace MRP
                 //update existing rating
                 ratings.GetAll().Remove(existingRating);
             }
+            else
+            {
+                // Only increment if it's a new rating
+                var profile = profiles.GetByOwnerId(userId);
+                if (profile != null)
+                {
+                    profile.numberOfRatingsGiven++;
+                }
+            }
+            
             //add new rating
             ratings.AddRating(new Rating(mediaId, userId, stars));
+            
+            // Update favorite genre and media type
+            statisticsService?.UpdateFavorites(userId);
+            
             return true;
         }
 
@@ -68,15 +117,43 @@ namespace MRP
         {
             var existingEntry = media.GetMediaById(mediaId);
             if (existingEntry == null) return false;
+            
             //check if user has already rated this media entry
             var existingRating = ratings.GetAll().FirstOrDefault(r => r.mediaEntry == mediaId && r.user == userId);
+            bool hadComment = false;
+            
             if (existingRating != null)
             {
+                hadComment = !string.IsNullOrWhiteSpace(existingRating.comment);
                 //update existing rating
                 ratings.GetAll().Remove(existingRating);
             }
+            else
+            {
+                // New rating
+                var profile = profiles.GetByOwnerId(userId);
+                if (profile != null)
+                {
+                    profile.numberOfRatingsGiven++;
+                }
+            }
+            
+            // Update review count if comment was added or changed
+            if (!string.IsNullOrWhiteSpace(comment) && !hadComment)
+            {
+                var profile = profiles.GetByOwnerId(userId);
+                if (profile != null)
+                {
+                    profile.numberOfReviewsWritten++;
+                }
+            }
+            
             //add new rating
             ratings.AddRating(new Rating(mediaId, userId, stars, comment));
+            
+            // Update favorite genre and media type
+            statisticsService?.UpdateFavorites(userId);
+            
             return true;
         }
 
@@ -84,11 +161,32 @@ namespace MRP
         {
             var existingEntry = media.GetMediaById(mediaId);
             if (existingEntry == null) return false;
+            
             //check if user has already rated this media entry
             var existingRating = ratings.GetAll().FirstOrDefault(r => r.mediaEntry == mediaId && r.user == userId);
             if (existingRating == null) return false;
+            
+            // Update profile statistics
+            var profile = profiles.GetByOwnerId(userId);
+            if (profile != null)
+            {
+                if (profile.numberOfRatingsGiven > 0)
+                {
+                    profile.numberOfRatingsGiven--;
+                }
+                
+                if (!string.IsNullOrWhiteSpace(existingRating.comment) && profile.numberOfReviewsWritten > 0)
+                {
+                    profile.numberOfReviewsWritten--;
+                }
+            }
+            
             //remove existing rating
             ratings.GetAll().Remove(existingRating);
+            
+            // Update favorite genre and media type
+            statisticsService?.UpdateFavorites(userId);
+            
             return true;
         }
 
@@ -96,13 +194,42 @@ namespace MRP
         {
             var existingEntry = media.GetMediaById(mediaId);
             if (existingEntry == null) return false;
+            
             //check if user has already rated this media entry
             var existingRating = ratings.GetAll().FirstOrDefault(r => r.mediaEntry == mediaId && r.user == userId);
             if (existingRating == null) return false;
+            
+            bool hadComment = !string.IsNullOrWhiteSpace(existingRating.comment);
+            bool hasComment = !string.IsNullOrWhiteSpace(comment);
+            
             //remove existing rating
             ratings.GetAll().Remove(existingRating);
+            
+            // Update review count if comment status changed
+            var profile = profiles.GetByOwnerId(userId);
+            if (profile != null)
+            {
+                if (!hadComment && hasComment)
+                {
+                    // Comment was added
+                    profile.numberOfReviewsWritten++;
+                }
+                else if (hadComment && !hasComment)
+                {
+                    // Comment was removed
+                    if (profile.numberOfReviewsWritten > 0)
+                    {
+                        profile.numberOfReviewsWritten--;
+                    }
+                }
+            }
+            
             //add new rating
             ratings.AddRating(new Rating(mediaId, userId, stars, comment));
+            
+            // Update favorite genre and media type
+            statisticsService?.UpdateFavorites(userId);
+            
             return true;
         }
 

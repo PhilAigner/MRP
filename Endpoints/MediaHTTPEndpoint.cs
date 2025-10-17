@@ -30,12 +30,16 @@ namespace MRP
         private readonly MediaRepository _mediaRepository;
         private readonly UserRepository _userRepository;
         private readonly RatingRepository _ratingRepository;
+        private readonly ProfileRepository _profileRepository;
+        private readonly MediaService _mediaService;
 
-        public MediaHTTPEndpoint(MediaRepository mediaRepository, UserRepository userRepository, RatingRepository ratingRepository)
+        public MediaHTTPEndpoint(MediaRepository mediaRepository, UserRepository userRepository, RatingRepository ratingRepository, ProfileRepository profileRepository)
         {
             _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _ratingRepository = ratingRepository ?? throw new ArgumentNullException(nameof(ratingRepository));
+            _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
+            _mediaService = new MediaService(_mediaRepository, _ratingRepository, _profileRepository);
         }
 
         public bool CanHandle(HttpListenerRequest request)
@@ -50,7 +54,7 @@ namespace MRP
 
             if (req.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
-                // support ?id=GUID, ?creator=GUID, ?title=...
+                // Special case: Get single media by ID
                 var idq = req.QueryString["id"];
                 if (!string.IsNullOrWhiteSpace(idq) && Guid.TryParse(idq, out var id))
                 {
@@ -60,24 +64,93 @@ namespace MRP
                     return;
                 }
 
+                // Start with all media entries
+                IEnumerable<MediaEntry> query = _mediaRepository.GetAll();
+
+                // Apply filters progressively (combinable)
+                
+                // Filter by creator
                 var creatorq = req.QueryString["creator"];
                 if (!string.IsNullOrWhiteSpace(creatorq) && Guid.TryParse(creatorq, out var creatorId))
                 {
-                    var list = _mediaRepository.GetMediaByCreator(creatorId) ?? new List<MediaEntry>();
-                    await HttpServer.Json(context.Response, 200, list);
-                    return;
+                    query = query.Where(m => m.createdBy.uuid == creatorId);
                 }
 
-                var titleq = req.QueryString["title"]; 
+                // Filter by exact title
+                var titleq = req.QueryString["title"];
                 if (!string.IsNullOrWhiteSpace(titleq))
                 {
-                    var list = _mediaRepository.GetMediaByTitle(titleq) ?? new List<MediaEntry>();
-                    await HttpServer.Json(context.Response, 200, list);
-                    return;
+                    query = query.Where(m => m.title.Equals(titleq, StringComparison.OrdinalIgnoreCase));
                 }
 
-                // return all
-                await HttpServer.Json(context.Response, 200, _mediaRepository.GetAll());
+                // Filter by title contains
+                var titleContainsq = req.QueryString["titleContains"];
+                if (!string.IsNullOrWhiteSpace(titleContainsq))
+                {
+                    query = query.Where(m => m.title.Contains(titleContainsq, StringComparison.OrdinalIgnoreCase));
+                }
+
+                // Filter by genre
+                var genreq = req.QueryString["genre"];
+                if (!string.IsNullOrWhiteSpace(genreq))
+                {
+                    query = query.Where(m => m.genre.Contains(genreq, StringComparison.OrdinalIgnoreCase));
+                }
+
+                // Filter by media type
+                var mediaTypeq = req.QueryString["mediaType"];
+                if (!string.IsNullOrWhiteSpace(mediaTypeq) && Enum.TryParse<EMediaType>(mediaTypeq, true, out var mediaType))
+                {
+                    query = query.Where(m => m.mediaType == mediaType);
+                }
+
+                // Filter by exact release year
+                var releaseYearq = req.QueryString["releaseYear"];
+                if (!string.IsNullOrWhiteSpace(releaseYearq) && int.TryParse(releaseYearq, out var releaseYear))
+                {
+                    query = query.Where(m => m.releaseYear == releaseYear);
+                }
+
+                // Filter by minimum release year
+                var minYearq = req.QueryString["minYear"];
+                if (!string.IsNullOrWhiteSpace(minYearq) && int.TryParse(minYearq, out var minYear))
+                {
+                    query = query.Where(m => m.releaseYear >= minYear);
+                }
+
+                // Filter by maximum release year
+                var maxYearq = req.QueryString["maxYear"];
+                if (!string.IsNullOrWhiteSpace(maxYearq) && int.TryParse(maxYearq, out var maxYear))
+                {
+                    query = query.Where(m => m.releaseYear <= maxYear);
+                }
+
+                // Filter by age restriction
+                var ageRestrictionq = req.QueryString["ageRestriction"];
+                if (!string.IsNullOrWhiteSpace(ageRestrictionq) && Enum.TryParse<EFSK>(ageRestrictionq, true, out var ageRestriction))
+                {
+                    query = query.Where(m => m.ageRestriction == ageRestriction);
+                }
+
+                // Filter by minimum average rating
+                var minRatingq = req.QueryString["minRating"];
+                if (!string.IsNullOrWhiteSpace(minRatingq) && float.TryParse(minRatingq, out var minRating))
+                {
+                    query = query.Where(m => m.averageScore >= minRating);
+                }
+
+                // Filter by maximum average rating
+                var maxRatingq = req.QueryString["maxRating"];
+                if (!string.IsNullOrWhiteSpace(maxRatingq) && float.TryParse(maxRatingq, out var maxRating))
+                {
+                    query = query.Where(m => m.averageScore <= maxRating);
+                }
+
+                // Convert to list and apply sorting
+                var resultList = query.ToList();
+                resultList = ApplySorting(resultList, req.QueryString["sortBy"], req.QueryString["sortOrder"]);
+
+                await HttpServer.Json(context.Response, 200, resultList);
                 return;
             }
 
@@ -109,7 +182,7 @@ namespace MRP
                     if (!Enum.TryParse<EFSK>(dto.ageRestriction ?? "FSK0", true, out var fsk)) fsk = EFSK.FSK0;
 
                     var entry = new MediaEntry(dto.title!, mtype, dto.releaseYear ?? DateTime.Now.Year, fsk, dto.genre ?? string.Empty, user, dto.description ?? string.Empty);
-                    var newId = _mediaRepository.AddMedia(entry);
+                    var newId = _mediaService.createMediaEntry(entry);
                     if (newId == Guid.Empty) { await HttpServer.Json(context.Response, 409, new { error = "Media already exists" }); return; }
 
                     await HttpServer.Json(context.Response, 201, new { message = "Media created", uuid = newId });
@@ -182,17 +255,38 @@ namespace MRP
                 var existing = _mediaRepository.GetMediaById(id);
                 if (existing == null) { await HttpServer.Json(context.Response, 404, new { error = "Media not found" }); return; }
 
-                _mediaRepository.GetAll().Remove(existing);
-
-                // remove ratings for this media
-                var ratingsToRemove = _ratingRepository.GetAll().Where(r => r.mediaEntry == id).ToList();
-                foreach (var r in ratingsToRemove) _ratingRepository.GetAll().Remove(r);
+                _mediaService.deleteMediaEntry(id);
 
                 await HttpServer.Json(context.Response, 200, new { message = "Media deleted" });
                 return;
             }
 
             await HttpServer.Json(context.Response, 405, new { error = "Method Not Allowed" });
+        }
+
+        private List<MediaEntry> ApplySorting(List<MediaEntry> mediaList, string? sortBy, string? sortOrder)
+        {
+            if (string.IsNullOrWhiteSpace(sortBy))
+                return mediaList;
+
+            bool descending = !string.IsNullOrWhiteSpace(sortOrder) && sortOrder.Equals("desc", StringComparison.OrdinalIgnoreCase);
+
+            return sortBy.ToLowerInvariant() switch
+            {
+                "title" => descending 
+                    ? mediaList.OrderByDescending(m => m.title).ToList()
+                    : mediaList.OrderBy(m => m.title).ToList(),
+                
+                "year" or "releaseyear" => descending
+                    ? mediaList.OrderByDescending(m => m.releaseYear).ToList()
+                    : mediaList.OrderBy(m => m.releaseYear).ToList(),
+                
+                "score" or "rating" or "averagescore" => descending
+                    ? mediaList.OrderByDescending(m => m.averageScore).ToList()
+                    : mediaList.OrderBy(m => m.averageScore).ToList(),
+                
+                _ => mediaList // Invalid sort field, return unsorted
+            };
         }
     }
 }

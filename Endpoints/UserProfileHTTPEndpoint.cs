@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text.Json;
@@ -11,7 +12,14 @@ namespace MRP
     public class ProfileDto
     {
         public Guid user { get; set; }
-        public int someStatistic { get; set; }
+        public int? numberOfLogins { get; set; }
+        public int? numberOfRatingsGiven { get; set; }
+        public int? numberOfMediaAdded { get; set; }
+        public int? numberOfReviewsWritten { get; set; }
+        public string? favoriteGenre { get; set; }
+        public string? favoriteMediaType { get; set; }
+        public string? sobriquet { get; set; }
+        public string? aboutMe { get; set; }
     }
 
     public sealed class UserProfileHTTPEndpoint : IHttpEndpoint
@@ -21,12 +29,14 @@ namespace MRP
         private readonly UserRepository _userRepository;
         private readonly ProfileRepository _profileRepository;
         private readonly UserService _userService;
+        private readonly ProfileStatisticsService _statisticsService;
 
-        public UserProfileHTTPEndpoint(UserRepository userRepository, ProfileRepository profileRepository)
+        public UserProfileHTTPEndpoint(UserRepository userRepository, ProfileRepository profileRepository, RatingRepository ratingRepository, MediaRepository mediaRepository)
         {
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
             _userService = new UserService(_userRepository, _profileRepository);
+            _statisticsService = new ProfileStatisticsService(_profileRepository, ratingRepository, mediaRepository);
         }
 
         public bool CanHandle(HttpListenerRequest request)
@@ -63,7 +73,14 @@ namespace MRP
                 {
                     uuid = profile.uuid,
                     user = profile.user,
-                    someStatistic = profile.someStatistic
+                    numberOfLogins = profile.numberOfLogins,
+                    numberOfRatingsGiven = profile.numberOfRatingsGiven,
+                    numberOfMediaAdded = profile.numberOfMediaAdded,
+                    numberOfReviewsWritten = profile.numberOfReviewsWritten,
+                    favoriteGenre = profile.favoriteGenre,
+                    favoriteMediaType = profile.favoriteMediaType,
+                    sobriquet = profile.sobriquet,
+                    aboutMe = profile.aboutMe
                 });
 
                 return;
@@ -83,14 +100,36 @@ namespace MRP
                         return;
                     }
 
-                    // build new profile instance and set values
-                    var newProfile = new Profile(dto.user);
-                    newProfile.someStatistic = dto.someStatistic;
+                    // Verify user exists
+                    var user = _userRepository.GetUserById(dto.user);
+                    if (user == null)
+                    {
+                        await HttpServer.Json(context.Response, 404, new { error = "User not found" });
+                        return;
+                    }
 
-                    var ok = _userService.editProfile(newProfile);
+                    // Get existing profile
+                    var existingProfile = _userService.getProfile(dto.user);
+                    if (existingProfile == null)
+                    {
+                        await HttpServer.Json(context.Response, 404, new { error = "Profile not found" });
+                        return;
+                    }
+
+                    // Update only provided fields
+                    if (dto.numberOfLogins.HasValue) existingProfile.numberOfLogins = dto.numberOfLogins.Value;
+                    if (dto.numberOfRatingsGiven.HasValue) existingProfile.numberOfRatingsGiven = dto.numberOfRatingsGiven.Value;
+                    if (dto.numberOfMediaAdded.HasValue) existingProfile.numberOfMediaAdded = dto.numberOfMediaAdded.Value;
+                    if (dto.numberOfReviewsWritten.HasValue) existingProfile.numberOfReviewsWritten = dto.numberOfReviewsWritten.Value;
+                    if (dto.favoriteGenre != null) existingProfile.favoriteGenre = dto.favoriteGenre;
+                    if (dto.favoriteMediaType != null) existingProfile.favoriteMediaType = dto.favoriteMediaType;
+                    if (dto.sobriquet != null) existingProfile.sobriquet = dto.sobriquet;
+                    if (dto.aboutMe != null) existingProfile.aboutMe = dto.aboutMe;
+
+                    var ok = _userService.editProfile(existingProfile);
                     if (!ok)
                     {
-                        await HttpServer.Json(context.Response, 404, new { error = "Profile not found or could not be updated." });
+                        await HttpServer.Json(context.Response, 500, new { error = "Profile could not be updated." });
                         return;
                     }
 
@@ -105,6 +144,30 @@ namespace MRP
                     await HttpServer.Json(context.Response, 500, new { error = $"Server error: {ex.Message}" });
                 }
 
+                return;
+            }
+
+            if (req.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase))
+            {
+                // POST is used to recalculate statistics for a user
+                var userid = req.QueryString["userid"];
+                if (string.IsNullOrWhiteSpace(userid) || !Guid.TryParse(userid, out var userGuid))
+                {
+                    await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'userid' query parameter" });
+                    return;
+                }
+
+                var profile = _userService.getProfile(userGuid);
+                if (profile == null)
+                {
+                    await HttpServer.Json(context.Response, 404, new { error = "Profile not found" });
+                    return;
+                }
+
+                // Recalculate all statistics
+                _statisticsService.RecalculateStatistics(userGuid);
+
+                await HttpServer.Json(context.Response, 200, new { message = "Statistics recalculated successfully" });
                 return;
             }
 
