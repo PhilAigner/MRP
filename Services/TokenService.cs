@@ -32,8 +32,8 @@ namespace MRP
                 return existingToken;
             }
 
-            // Generate new token: username-mrpToken
-            string token = $"{username}-{new Guid()}-token";
+            // Generate new token
+            string token = $"{username}-{Guid.NewGuid()}-{Guid.NewGuid()}-token";
             
             lock (_lock)
             {

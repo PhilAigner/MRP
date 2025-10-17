@@ -1,10 +1,10 @@
 {
-	"info": {
-		"_postman_id": "media-sorting-filtering-tests",
-		"name": "Media Endpoint - Sorting & Filtering Tests",
-		"description": "Comprehensive tests for media endpoint sorting and filtering functionality",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
+"info": {
+"_postman_id": "media-sorting-filtering-tests",
+"name": "Media Endpoint - Sorting & Filtering Tests (Token Auth)",
+"description": "Comprehensive tests for media endpoint sorting and filtering functionality with token-based authentication",
+"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+},
 	"item": [
 		{
 			"name": "Setup - Create Test Data",
@@ -40,7 +40,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{randomStreetAddress}}\",\n    \"password\": \"password123\"\n}"
+							"raw": "{\n    \"username\": \"{{$randomStreetAddress}}\",\n    \"password\": \"password123\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/users/register",

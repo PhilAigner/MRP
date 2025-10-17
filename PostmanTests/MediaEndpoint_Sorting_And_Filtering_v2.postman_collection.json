@@ -1,0 +1,994 @@
+{
+	"info": {
+		"_postman_id": "media-sorting-filtering-tests-v2",
+		"name": "Media Endpoint - Sorting & Filtering Tests (Token Auth)",
+		"description": "Comprehensive tests for media endpoint sorting and filtering functionality with token-based authentication",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Setup - Authentication & Test Data",
+			"item": [
+				{
+					"name": "1. Register Test User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"User created successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user).to.be.an('object');",
+									"    pm.expect(jsonData.user.uuid).to.be.a('string');",
+									"    pm.collectionVariables.set(\"user1_id\", jsonData.user.uuid);",
+									"    pm.collectionVariables.set(\"user1_username\", jsonData.user.username);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser_{{$timestamp}}\",\n    \"password\": \"Test123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "register"]
+						}
+					}
+				},
+				{
+					"name": "2. Login and Get Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Token received\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.token).to.be.a('string');",
+									"    pm.collectionVariables.set(\"auth_token\", jsonData.token);",
+									"});",
+									"",
+									"pm.test(\"Login successful message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('successful');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{user1_username}}\",\n    \"password\": \"Test123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "login"]
+						}
+					}
+				},
+				{
+					"name": "3. Create Action Movie (2023)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Media created\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.uuid).to.be.a('string');",
+									"    pm.collectionVariables.set(\"media1_id\", jsonData.uuid);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Action Hero Adventures\",\n    \"description\": \"An action-packed thriller\",\n    \"mediaType\": \"Movie\",\n    \"releaseYear\": 2023,\n    \"ageRestriction\": \"FSK16\",\n    \"genre\": \"Action\",\n    \"createdBy\": \"{{user1_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/media",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"]
+						}
+					}
+				},
+				{
+					"name": "4. Create Comedy Series (2021)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Media created\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"media2_id\", jsonData.uuid);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Brilliant Comedy Show\",\n    \"description\": \"A hilarious comedy series\",\n    \"mediaType\": \"Series\",\n    \"releaseYear\": 2021,\n    \"ageRestriction\": \"FSK12\",\n    \"genre\": \"Comedy\",\n    \"createdBy\": \"{{user1_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/media",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"]
+						}
+					}
+				},
+				{
+					"name": "5. Create Drama Movie (2020)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Media created\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"media3_id\", jsonData.uuid);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Deep Drama\",\n    \"description\": \"An emotional drama\",\n    \"mediaType\": \"Movie\",\n    \"releaseYear\": 2020,\n    \"ageRestriction\": \"FSK12\",\n    \"genre\": \"Drama\",\n    \"createdBy\": \"{{user1_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/media",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"]
+						}
+					}
+				},
+				{
+					"name": "6. Create Action Game (2022)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Media created\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"media4_id\", jsonData.uuid);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Zombie Apocalypse Game\",\n    \"description\": \"Intense action game\",\n    \"mediaType\": \"Game\",\n    \"releaseYear\": 2022,\n    \"ageRestriction\": \"FSK18\",\n    \"genre\": \"Action\",\n    \"createdBy\": \"{{user1_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/media",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Sorting Tests (Public Access)",
+			"item": [
+				{
+					"name": "Sort by Title (Ascending)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.be.at.least(4);",
+									"});",
+									"",
+									"pm.test(\"Results sorted by title ascending\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    for (let i = 0; i < jsonData.length - 1; i++) {",
+									"        let title1 = jsonData[i].title.toLowerCase();",
+									"        let title2 = jsonData[i + 1].title.toLowerCase();",
+									"        pm.expect(title1.localeCompare(title2)).to.be.at.most(0);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?sortBy=title&sortOrder=asc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [
+								{"key": "sortBy", "value": "title"},
+								{"key": "sortOrder", "value": "asc"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Sort by Title (Descending)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Results sorted by title descending\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    for (let i = 0; i < jsonData.length - 1; i++) {",
+									"        let title1 = jsonData[i].title.toLowerCase();",
+									"        let title2 = jsonData[i + 1].title.toLowerCase();",
+									"        pm.expect(title1.localeCompare(title2)).to.be.at.least(0);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?sortBy=title&sortOrder=desc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [
+								{"key": "sortBy", "value": "title"},
+								{"key": "sortOrder", "value": "desc"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Sort by Year (Ascending)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Results sorted by year ascending\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    for (let i = 0; i < jsonData.length - 1; i++) {",
+									"        pm.expect(jsonData[i].releaseYear).to.be.at.most(jsonData[i + 1].releaseYear);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?sortBy=year&sortOrder=asc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [
+								{"key": "sortBy", "value": "year"},
+								{"key": "sortOrder", "value": "asc"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Sort by Year (Descending)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Results sorted by year descending\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    for (let i = 0; i < jsonData.length - 1; i++) {",
+									"        pm.expect(jsonData[i].releaseYear).to.be.at.least(jsonData[i + 1].releaseYear);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?sortBy=year&sortOrder=desc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [
+								{"key": "sortBy", "value": "year"},
+								{"key": "sortOrder", "value": "desc"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Sort by Score (Descending)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Results sorted by score descending\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    for (let i = 0; i < jsonData.length - 1; i++) {",
+									"        pm.expect(jsonData[i].averageScore).to.be.at.least(jsonData[i + 1].averageScore);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?sortBy=score&sortOrder=desc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [
+								{"key": "sortBy", "value": "score"},
+								{"key": "sortOrder", "value": "desc"}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Filter Tests (Public Access)",
+			"item": [
+				{
+					"name": "Filter by Genre (Action)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All results have Action genre\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.be.at.least(1);",
+									"    jsonData.forEach(function(item) {",
+									"        pm.expect(item.genre.toLowerCase()).to.include('action');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?genre=Action",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [{"key": "genre", "value": "Action"}]
+						}
+					}
+				},
+				{
+					"name": "Filter by Media Type (Movie)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All results are Movies\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.be.at.least(1);",
+									"    jsonData.forEach(function(item) {",
+									"        pm.expect(item.mediaType).to.equal(0);",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?mediaType=Movie",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [{"key": "mediaType", "value": "Movie"}]
+						}
+					}
+				},
+				{
+					"name": "Filter by Min Year (2021)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All results from 2021 or later\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.be.at.least(1);",
+									"    jsonData.forEach(function(item) {",
+									"        pm.expect(item.releaseYear).to.be.at.least(2021);",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?minYear=2021",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [{"key": "minYear", "value": "2021"}]
+						}
+					}
+				},
+				{
+					"name": "Filter by Age Restriction (FSK12)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All results have FSK12 rating\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.be.at.least(1);",
+									"    jsonData.forEach(function(item) {",
+									"        pm.expect(item.ageRestriction).to.equal(2);",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?ageRestriction=FSK12",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [{"key": "ageRestriction", "value": "FSK12"}]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Combined Filters & Sorting",
+			"item": [
+				{
+					"name": "Filter by Genre + Sort by Title",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All results have Action genre\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    if (jsonData.length > 0) {",
+									"        jsonData.forEach(function(item) {",
+									"            pm.expect(item.genre.toLowerCase()).to.include('action');",
+									"        });",
+									"    }",
+									"});",
+									"",
+									"pm.test(\"Results sorted by title\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.length > 1) {",
+									"        for (let i = 0; i < jsonData.length - 1; i++) {",
+									"            let title1 = jsonData[i].title.toLowerCase();",
+									"            let title2 = jsonData[i + 1].title.toLowerCase();",
+									"            pm.expect(title1.localeCompare(title2)).to.be.at.most(0);",
+									"        }",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?genre=Action&sortBy=title&sortOrder=asc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [
+								{"key": "genre", "value": "Action"},
+								{"key": "sortBy", "value": "title"},
+								{"key": "sortOrder", "value": "asc"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Multiple Filters + Sort",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Results match all filters\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    if (jsonData.length > 0) {",
+									"        jsonData.forEach(function(item) {",
+									"            pm.expect(item.mediaType).to.equal(0);",
+									"            pm.expect(item.releaseYear).to.be.at.least(2020);",
+									"        });",
+									"    }",
+									"});",
+									"",
+									"pm.test(\"Results sorted by year descending\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.length > 1) {",
+									"        for (let i = 0; i < jsonData.length - 1; i++) {",
+									"            pm.expect(jsonData[i].releaseYear).to.be.at.least(jsonData[i + 1].releaseYear);",
+									"        }",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?mediaType=Movie&minYear=2020&sortBy=year&sortOrder=desc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [
+								{"key": "mediaType", "value": "Movie"},
+								{"key": "minYear", "value": "2020"},
+								{"key": "sortBy", "value": "year"},
+								{"key": "sortOrder", "value": "desc"}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Authentication Tests",
+			"item": [
+				{
+					"name": "Create Media Without Token (Should Fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401 Unauthorized\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test(\"Error message about authentication\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.exist;",
+									"    pm.expect(jsonData.error.toLowerCase()).to.include('unauthorized');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Should Fail\",\n    \"mediaType\": \"Movie\",\n    \"releaseYear\": 2023,\n    \"ageRestriction\": \"FSK12\",\n    \"genre\": \"Drama\",\n    \"createdBy\": \"{{user1_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/media",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"]
+						}
+					}
+				},
+				{
+					"name": "Update Media With Valid Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Update successful\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('updated');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"uuid\": \"{{media1_id}}\",\n    \"description\": \"Updated description with token auth\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/media",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Edge Cases",
+			"item": [
+				{
+					"name": "Invalid Sort Field",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Results returned without sorting\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?sortBy=invalidField",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [{"key": "sortBy", "value": "invalidField"}]
+						}
+					}
+				},
+				{
+					"name": "Empty Result Filter",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Empty array returned\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?genre=NonExistentGenre",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [{"key": "genre", "value": "NonExistentGenre"}]
+						}
+					}
+				},
+				{
+					"name": "Case Insensitive Parameters",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Results sorted correctly\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    if (jsonData.length > 1) {",
+									"        for (let i = 0; i < jsonData.length - 1; i++) {",
+									"            let title1 = jsonData[i].title.toLowerCase();",
+									"            let title2 = jsonData[i + 1].title.toLowerCase();",
+									"            pm.expect(title1.localeCompare(title2)).to.be.at.most(0);",
+									"        }",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?sortBy=TITLE&sortOrder=ASC",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [
+								{"key": "sortBy", "value": "TITLE"},
+								{"key": "sortOrder", "value": "ASC"}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "user1_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user1_username",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "media1_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "media2_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "media3_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "media4_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
