@@ -18,20 +18,30 @@ namespace MRP
         public Task Completion => _tcs.Task;
 
 
-        public static async Task RunServer(string prefix, IHttpEndpoint endpoint)
+        public static async Task RunServer(string prefix, IEnumerable<IHttpEndpoint> endpoints)
         {
-
             var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (s, e) => { e.Cancel = true; cts.Cancel(); };
 
             var server = new HttpServer();
             server.AddPrefix(prefix);
-            server.RegisterEndpoint(endpoint);
+            
+            // Alle Endpunkte registrieren
+            foreach (var endpoint in endpoints)
+            {
+                server.RegisterEndpoint(endpoint);
+            }
 
             await server.StartAsync(cts.Token);
             await server.Completion; // waits until cancellation / stop
         }
 
+
+        // Overload beibehalten für Abwärtskompatibilität
+        public static Task RunServer(string prefix, IHttpEndpoint endpoint)
+        {
+            return RunServer(prefix, new[] { endpoint });
+        }
 
         public void AddPrefix(string prefix)
         {

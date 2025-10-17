@@ -1,4 +1,5 @@
-﻿using System.Reflection.PortableExecutable;
+﻿using HttpServerDemo.WeatherServer;
+using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography.X509Certificates;
@@ -74,9 +75,9 @@ namespace MRP
 
         }
 
-        public int Start()
+        public async Task<int> StartAsync()
         {
-            
+
 
             //testcode:
             //UserService userService = new UserService(userRepository, profileRepository);
@@ -90,13 +91,16 @@ namespace MRP
             id = userService.register("123", "baum");
             */
 
+            List<IHttpEndpoint> httpEndpoints = new List<IHttpEndpoint>
+            {
+                new WeatherServiceEndpoint(),
+            };
 
 
+            await HttpServer.RunServer("http://localhost:8080/", httpEndpoints);
 
-            return 1;
+
+            return 0;
         }
-
-
-
     }
 }
