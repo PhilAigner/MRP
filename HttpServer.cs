@@ -94,6 +94,18 @@ namespace MRP
         private async Task DispatchAsync(HttpListenerContext ctx, CancellationToken ct)
         {
             var req = ctx.Request;
+            var resp = ctx.Response;
+
+            // Add CORS headers to allow frontend access
+            AddCorsHeaders(resp);
+
+            // Handle preflight OPTIONS request
+            if (req.HttpMethod.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+            {
+                resp.StatusCode = 204; // No Content
+                resp.Close();
+                return;
+            }
 
             // Rudimentary access log
             var started = DateTime.UtcNow;
@@ -123,11 +135,35 @@ namespace MRP
             }
         }
 
+        private static void AddCorsHeaders(HttpListenerResponse response)
+        {
+            // Allow requests from any origin (for development)
+            response.Headers.Add("Access-Control-Allow-Origin", "*");
+            
+            // Allow common HTTP methods
+            response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            
+            // Allow common headers
+            response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization");
+            
+            // Allow credentials (if needed later)
+            // response.Headers.Add("Access-Control-Allow-Credentials", "true");
+            
+            // Cache preflight response for 1 hour
+            response.Headers.Add("Access-Control-Max-Age", "3600");
+        }
+
         #region Helpers (response)
         public static async Task Json(HttpListenerResponse resp, int status, object payload)
         {
             var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
             var bytes = Encoding.UTF8.GetBytes(json);
+
+            // Ensure CORS headers are set (in case they weren't already)
+            if (!resp.Headers.AllKeys.Contains("Access-Control-Allow-Origin"))
+            {
+                AddCorsHeaders(resp);
+            }
 
             resp.StatusCode = status;
             resp.ContentType = "application/json; charset=utf-8";
@@ -140,6 +176,13 @@ namespace MRP
         public static async Task Text(HttpListenerResponse resp, int status, string body)
         {
             var bytes = Encoding.UTF8.GetBytes(body);
+            
+            // Ensure CORS headers are set (in case they weren't already)
+            if (!resp.Headers.AllKeys.Contains("Access-Control-Allow-Origin"))
+            {
+                AddCorsHeaders(resp);
+            }
+
             resp.StatusCode = status;
             resp.ContentType = "text/plain; charset=utf-8";
             resp.ContentLength64 = bytes.Length;
