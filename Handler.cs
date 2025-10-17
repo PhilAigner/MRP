@@ -90,14 +90,17 @@ namespace MRP
             id = userService.register("123", "baum");
             */
 
-            List<IHttpEndpoint> userHttpEndpoints = new List<IHttpEndpoint>
+            List<IHttpEndpoint> HttpEndpoints = new List<IHttpEndpoint>
             {
+                // User endpints
                 new UserLoginHTTPEndpoint(),
                 new UserRegisterHTTPEndpoint(userRepository, profileRepository),
                 new UserProfileHTTPEndpoint(userRepository, profileRepository),
+                // Media endpoint
+                new MediaHTTPEndpoint(mediaRepository, userRepository, ratingRepository),
             };
 
-            await HttpServer.RunServer("http://localhost:8081/api/users/", userHttpEndpoints);
+            await HttpServer.RunServer("http://localhost:8081/api/", HttpEndpoints);
 
 
             return 0;
