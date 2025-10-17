@@ -22,7 +22,7 @@ namespace MRP
 
     public sealed class RatingsHTTPEndpoint : IHttpEndpoint
     {
-        private readonly List<string> paths = new List<string> { "/api/ratings" };
+        private readonly List<string> paths = new List<string> { "/api/ratings", "/api/ratings/approve" };
 
         private readonly RatingRepository _ratingRepository;
         private readonly UserRepository _userRepository;
@@ -269,6 +269,38 @@ namespace MRP
 
                 _ratingRepository.GetAll().RemoveAll(r => r.uuid == id);
                 await HttpServer.Json(context.Response, 200, new { message = "Rating deleted" });
+                return;
+            }
+
+            // PATCH: /api/ratings/approve?id=GUID&approverId=GUID
+            // Approves a rating and makes it publicly visible (only media entry owner can approve)
+            if (req.HttpMethod.Equals("PATCH", StringComparison.OrdinalIgnoreCase) && 
+                req.Url!.AbsolutePath.ToLowerInvariant().Contains("/approve"))
+            {
+                var idq = req.QueryString["id"];
+                var approverIdq = req.QueryString["approverId"];
+                
+                if (string.IsNullOrWhiteSpace(idq) || !Guid.TryParse(idq, out var ratingId))
+                {
+                    await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'id' query parameter" });
+                    return;
+                }
+                
+                if (string.IsNullOrWhiteSpace(approverIdq) || !Guid.TryParse(approverIdq, out var approverId))
+                {
+                    await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'approverId' query parameter" });
+                    return;
+                }
+
+                var success = _mediaService.approveRating(ratingId, approverId);
+                
+                if (!success)
+                {
+                    await HttpServer.Json(context.Response, 403, new { error = "Only the media entry owner can approve ratings" });
+                    return;
+                }
+
+                await HttpServer.Json(context.Response, 200, new { message = "Rating approved and made publicly visible" });
                 return;
             }
 

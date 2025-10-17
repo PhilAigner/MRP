@@ -310,7 +310,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>Paigners MRP🎬 API Test Frontend</h1>
+            <h1>Paigners MRP API Test Frontend</h1>
             <p>Media Rating Platform - API Testing Interface</p>
             <p>v0.3</p>
         </header>
@@ -339,6 +339,7 @@
                     <button class="nav-button" onclick="showSection('rating-list')">List Ratings</button>
                     <button class="nav-button" onclick="showSection('rating-update')">Update Rating</button>
                     <button class="nav-button" onclick="showSection('rating-delete')">Delete Rating</button>
+                    <button class="nav-button" onclick="showSection('rating-approve')">Approve Rating</button>
                 </div>
             </aside>
 
@@ -642,6 +643,26 @@
                     </div>
                     <button class="btn btn-primary" onclick="deleteRating()">Delete Rating</button>
                     <div id="rating-delete-response" class="response-area hidden"></div>
+                </section>
+
+                <!-- Approve Rating Section -->
+                <section id="rating-approve" class="section">
+                    <h2>Approve Rating</h2>
+                    <div class="info-box">
+                        <h4>ℹ️ Info</h4>
+                        <p>Only the owner of the media entry can approve ratings. Once approved, the rating becomes publicly visible and is added to the media entry's ratings list.</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Rating ID</label>
+                        <input type="text" id="approve-rating-id" placeholder="Rating UUID">
+                    </div>
+                    <div class="form-group">
+                        <label>Approver User ID (Media Entry Owner)</label>
+                        <input type="text" id="approve-approver-id" placeholder="User UUID">
+                    </div>
+                    <button class="btn btn-primary" onclick="approveRating()">Approve Rating</button>
+                    <div id="rating-approve-response" class="response-area hidden"></div>
                 </section>
             </main>
         </div>

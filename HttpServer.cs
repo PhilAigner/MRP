@@ -140,8 +140,8 @@ namespace MRP
             // Allow requests from any origin (for development)
             response.Headers.Add("Access-Control-Allow-Origin", "*");
             
-            // Allow common HTTP methods
-            response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            // Allow common HTTP methods including PATCH
+            response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
             
             // Allow common headers
             response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization");

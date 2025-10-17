@@ -404,3 +404,27 @@ async function deleteRating() {
     const result = await apiCall(`/ratings?id=${id}`, 'DELETE');
     displayResponse('rating-delete-response', result.status, result.data, result.ok);
 }
+
+async function approveRating() {
+    const ratingId = document.getElementById('approve-rating-id').value || savedData.ratingId;
+    let approverId = document.getElementById('approve-approver-id').value || savedData.userId;
+    
+    if (!ratingId) {
+        alert('Please enter a Rating ID');
+        return;
+    }
+    
+    if (!approverId) {
+        alert('Please enter an Approver User ID (media entry owner)');
+        return;
+    }
+    
+    const result = await apiCall(`/ratings/approve?id=${ratingId}&approverId=${approverId}`, 'PATCH');
+    displayResponse('rating-approve-response', result.status, result.data, result.ok);
+    
+    if (result.ok) {
+        // Optionally reload the rating details or show success message
+        alert('Rating successfully approved and made publicly visible!');
+    }
+}
+

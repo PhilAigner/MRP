@@ -32,6 +32,8 @@ public class Rating
 
         createdAt = DateTime.Now;
 
+        likedBy = new List<Guid>();
+
         publicVisible = false;
     }
 
@@ -46,6 +48,8 @@ public class Rating
         comment = _comment;
 
         createdAt = DateTime.Now;
+
+        likedBy = new List<Guid>();
 
         publicVisible = false;
     }
