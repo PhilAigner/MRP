@@ -1,4 +1,3 @@
-using HttpServerDemo.WeatherServer;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -9,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace MRP
 {
-    public sealed class UserHTTPEndpoint : IHttpEndpoint
+    public sealed class MediaHTTPEndpoint : IHttpEndpoint
     {
-        private List<string> paths = new List<string> { "/user", "/usr" };
+        private List<string> paths = new List<string> { "/media", "/mda" };
 
         private static readonly ConcurrentQueue<string> _store = new();
 

@@ -6,7 +6,7 @@
         {
             Handler handler = new Handler();
 
-            handler.StartAsync();
+            await handler.StartAsync();
         }
     }
 }

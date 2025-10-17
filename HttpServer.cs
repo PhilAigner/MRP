@@ -1,4 +1,3 @@
-using HttpServerDemo.WeatherServer;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -40,7 +39,7 @@ namespace MRP
         // Overload beibehalten für Abwärtskompatibilität
         public static Task RunServer(string prefix, IHttpEndpoint endpoint)
         {
-            return RunServer(prefix, new[] { endpoint });
+            return RunServer(prefix, [endpoint]);
         }
 
         public void AddPrefix(string prefix)

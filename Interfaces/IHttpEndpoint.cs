@@ -2,11 +2,10 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace HttpServerDemo.WeatherServer
+namespace MRP;
+
+public interface IHttpEndpoint
 {
-    public interface IHttpEndpoint
-    {
-        bool CanHandle(HttpListenerRequest request);
-        Task HandleAsync(HttpListenerContext context, CancellationToken ct);
-    }
+    bool CanHandle(HttpListenerRequest request);
+    Task HandleAsync(HttpListenerContext context, CancellationToken ct);
 }
