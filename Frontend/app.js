@@ -1,12 +1,13 @@
 // API Base URL
 const API_BASE = 'http://localhost:8081/api';
 
-// Storage for user/media IDs
+// Storage for user/media IDs and token
 let savedData = {
     userId: '',
     lastViewedUserId: '',
     mediaId: '',
-    ratingId: ''
+    ratingId: '',
+    token: ''  // Add token storage
 };
 
 // Initialize
@@ -32,7 +33,7 @@ function loadSavedData() {
 // Update saved data display
 function updateSavedDataDisplay() {
     const display = document.getElementById('savedDataDisplay');
-    if (!savedData.userId && !savedData.lastViewedUserId && !savedData.mediaId && !savedData.ratingId) {
+    if (!savedData.userId && !savedData.lastViewedUserId && !savedData.mediaId && !savedData.ratingId && !savedData.token) {
         display.innerHTML = '<p style="color: #856404;">No saved data yet. Create a user or media entry first!</p>';
         return;
     }
@@ -49,6 +50,9 @@ function updateSavedDataDisplay() {
     }
     if (savedData.ratingId) {
         html += `<div class="saved-item"><span>? Last Rating ID:</span> <code>${savedData.ratingId}</code></div>`;
+    }
+    if (savedData.token) {
+        html += `<div class="saved-item"><span>?? Auth Token:</span> <code style="color: green;">${savedData.token.substring(0, 20)}...</code></div>`;
     }
     display.innerHTML = html;
 }
@@ -88,13 +92,18 @@ function displayResponse(elementId, status, data, isSuccess = true) {
 }
 
 // API Call Helper
-async function apiCall(endpoint, method = 'GET', body = null) {
+async function apiCall(endpoint, method = 'GET', body = null, requiresAuth = false) {
     const options = {
         method,
         headers: {
             'Content-Type': 'application/json'
         }
     };
+    
+    // Add Authorization header if token exists and auth is required
+    if (requiresAuth && savedData.token) {
+        options.headers['Authorization'] = `Bearer ${savedData.token}`;
+    }
     
     if (body) {
         options.body = JSON.stringify(body);
@@ -141,11 +150,17 @@ async function loginUser() {
     const result = await apiCall('/users/login', 'POST', { username, password });
     displayResponse('login-response', result.status, result.data, result.ok);
     
-    // Save user ID after successful login
-    if (result.ok && result.data.uuid) {
-        savedData.userId = result.data.uuid;
-        savedData.lastViewedUserId = result.data.uuid;
+    // Save user ID and token after successful login
+    if (result.ok && result.data.token) {
+        savedData.token = result.data.token;
+        // Extract user ID from response if available, otherwise try to get from username
+        const user = await apiCall(`/users/profile?userid=${savedData.userId}`, 'GET', null, true);
+        if (user.ok && user.data.user) {
+            savedData.userId = user.data.user;
+            savedData.lastViewedUserId = user.data.user;
+        }
         saveData();
+        alert('Login successful! Token saved for authenticated requests.');
     }
 }
 
@@ -157,7 +172,12 @@ async function getProfile() {
         return;
     }
     
-    const result = await apiCall(`/users/profile?userid=${userId}`, 'GET');
+    if (!savedData.token) {
+        alert('Please login first to view profiles');
+        return;
+    }
+    
+    const result = await apiCall(`/users/profile?userid=${userId}`, 'GET', null, true);
     displayResponse('profile-response', result.status, result.data, result.ok);
     
     // Save the last viewed user ID
@@ -190,12 +210,17 @@ async function updateProfile() {
         return;
     }
     
+    if (!savedData.token) {
+        alert('Please login first to update profiles');
+        return;
+    }
+    
     // API expects 'user' field, not 'userid'
     const result = await apiCall('/users/profile', 'PUT', {
-        user: userId,  // Changed from 'userid' to 'user'
+        user: userId,
         sobriquet,
         aboutMe
-    });
+    }, true);
     
     displayResponse('profile-response', result.status, result.data, result.ok);
     
@@ -221,6 +246,11 @@ async function createMedia() {
         return;
     }
     
+    if (!savedData.token) {
+        alert('Please login first to create media entries');
+        return;
+    }
+    
     const result = await apiCall('/media', 'POST', {
         title,
         description,
@@ -229,7 +259,7 @@ async function createMedia() {
         ageRestriction,
         genre,
         createdBy
-    });
+    }, true);
     
     displayResponse('media-create-response', result.status, result.data, result.ok);
     
@@ -296,12 +326,17 @@ async function updateMedia() {
         return;
     }
     
+    if (!savedData.token) {
+        alert('Please login first to update media entries');
+        return;
+    }
+    
     const body = { uuid };
     if (title) body.title = title;
     if (description) body.description = description;
     if (genre) body.genre = genre;
     
-    const result = await apiCall('/media', 'PUT', body);
+    const result = await apiCall('/media', 'PUT', body, true);
     displayResponse('media-update-response', result.status, result.data, result.ok);
 }
 
@@ -313,11 +348,16 @@ async function deleteMedia() {
         return;
     }
     
+    if (!savedData.token) {
+        alert('Please login first to delete media entries');
+        return;
+    }
+    
     if (!confirm('Are you sure you want to delete this media entry?')) {
         return;
     }
     
-    const result = await apiCall(`/media?id=${id}`, 'DELETE');
+    const result = await apiCall(`/media?id=${id}`, 'DELETE', null, true);
     displayResponse('media-delete-response', result.status, result.data, result.ok);
 }
 
@@ -340,13 +380,18 @@ async function createRating() {
         return;
     }
     
+    if (!savedData.token) {
+        alert('Please login first to create ratings');
+        return;
+    }
+    
     const result = await apiCall('/ratings', 'POST', {
         mediaEntry,
         user,
         stars,
         comment,
         publicVisible
-    });
+    }, true);
     
     displayResponse('rating-create-response', result.status, result.data, result.ok);
     
@@ -381,11 +426,16 @@ async function updateRating() {
         return;
     }
     
+    if (!savedData.token) {
+        alert('Please login first to update ratings');
+        return;
+    }
+    
     const body = { uuid };
     if (stars) body.stars = stars;
     if (comment) body.comment = comment;
     
-    const result = await apiCall('/ratings', 'PUT', body);
+    const result = await apiCall('/ratings', 'PUT', body, true);
     displayResponse('rating-update-response', result.status, result.data, result.ok);
 }
 
@@ -397,11 +447,16 @@ async function deleteRating() {
         return;
     }
     
+    if (!savedData.token) {
+        alert('Please login first to delete ratings');
+        return;
+    }
+    
     if (!confirm('Are you sure you want to delete this rating?')) {
         return;
     }
     
-    const result = await apiCall(`/ratings?id=${id}`, 'DELETE');
+    const result = await apiCall(`/ratings?id=${id}`, 'DELETE', null, true);
     displayResponse('rating-delete-response', result.status, result.data, result.ok);
 }
 
@@ -419,12 +474,71 @@ async function approveRating() {
         return;
     }
     
-    const result = await apiCall(`/ratings/approve?id=${ratingId}&approverId=${approverId}`, 'PATCH');
+    if (!savedData.token) {
+        alert('Please login first to approve ratings');
+        return;
+    }
+    
+    const result = await apiCall(`/ratings/approve?id=${ratingId}&approverId=${approverId}`, 'PATCH', null, true);
     displayResponse('rating-approve-response', result.status, result.data, result.ok);
     
     if (result.ok) {
-        // Optionally reload the rating details or show success message
         alert('Rating successfully approved and made publicly visible!');
     }
 }
+
+async function likeRating() {
+    const ratingId = document.getElementById('like-rating-id').value || savedData.ratingId;
+    let userId = document.getElementById('like-user-id').value || savedData.userId;
+    
+    if (!ratingId) {
+        alert('Please enter a Rating ID');
+        return;
+    }
+    
+    if (!userId) {
+        alert('Please enter your User ID');
+        return;
+    }
+    
+    if (!savedData.token) {
+        alert('Please login first to like ratings');
+        return;
+    }
+    
+    const result = await apiCall(`/ratings/like?id=${ratingId}&userId=${userId}`, 'POST', null, true);
+    displayResponse('rating-like-response', result.status, result.data, result.ok);
+    
+    if (result.ok) {
+        alert('Rating liked successfully! ??');
+    }
+}
+
+async function unlikeRating() {
+    const ratingId = document.getElementById('like-rating-id').value || savedData.ratingId;
+    let userId = document.getElementById('like-user-id').value || savedData.userId;
+    
+    if (!ratingId) {
+        alert('Please enter a Rating ID');
+        return;
+    }
+    
+    if (!userId) {
+        alert('Please enter your User ID');
+        return;
+    }
+    
+    if (!savedData.token) {
+        alert('Please login first to unlike ratings');
+        return;
+    }
+    
+    const result = await apiCall(`/ratings/like?id=${ratingId}&userId=${userId}`, 'DELETE', null, true);
+    displayResponse('rating-like-response', result.status, result.data, result.ok);
+    
+    if (result.ok) {
+        alert('Like removed successfully! ??');
+    }
+}
+
 

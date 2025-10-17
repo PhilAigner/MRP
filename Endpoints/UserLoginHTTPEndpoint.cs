@@ -18,6 +18,18 @@ namespace MRP
     public sealed class UserLoginHTTPEndpoint : IHttpEndpoint
     {
         private List<string> paths = new List<string> { "/api/users/login", };
+        private readonly UserRepository _userRepository;
+        private readonly ProfileRepository _profileRepository;
+        private readonly TokenService _tokenService;
+        private readonly UserService _userService;
+
+        public UserLoginHTTPEndpoint(UserRepository userRepository, ProfileRepository profileRepository, TokenService tokenService)
+        {
+            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+            _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
+            _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
+            _userService = new UserService(_userRepository, _profileRepository, _tokenService);
+        }
 
         public bool CanHandle(HttpListenerRequest request)
         {
@@ -51,11 +63,20 @@ namespace MRP
                         return;
                     }
 
+                    // Perform login and get token
+                    var token = _userService.login(loginRequest.Username, loginRequest.Password);
                     
-                    //TODO WIRKLICHER LOGIN PROCESS
+                    if (token == null)
+                    {
+                        await HttpServer.Json(context.Response, 401, new { error = "Invalid username or password" });
+                        return;
+                    }
+
+                    // Return token
                     await HttpServer.Json(context.Response, 200, new { 
-                        message = "Login request received",
-                        username = loginRequest.Username
+                        message = "Login successful",
+                        username = loginRequest.Username,
+                        token = token
                     });
 
                 }

@@ -31,14 +31,16 @@ namespace MRP
         private readonly UserRepository _userRepository;
         private readonly RatingRepository _ratingRepository;
         private readonly ProfileRepository _profileRepository;
+        private readonly TokenService _tokenService;
         private readonly MediaService _mediaService;
 
-        public MediaHTTPEndpoint(MediaRepository mediaRepository, UserRepository userRepository, RatingRepository ratingRepository, ProfileRepository profileRepository)
+        public MediaHTTPEndpoint(MediaRepository mediaRepository, UserRepository userRepository, RatingRepository ratingRepository, ProfileRepository profileRepository, TokenService tokenService)
         {
             _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _ratingRepository = ratingRepository ?? throw new ArgumentNullException(nameof(ratingRepository));
             _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
+            _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
             _mediaService = new MediaService(_mediaRepository, _ratingRepository, _profileRepository);
         }
 
@@ -54,6 +56,8 @@ namespace MRP
 
             if (req.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
+                // GET doesn't require authentication - public endpoint for browsing
+                
                 // Special case: Get single media by ID
                 var idq = req.QueryString["id"];
                 if (!string.IsNullOrWhiteSpace(idq) && Guid.TryParse(idq, out var id))
@@ -156,6 +160,13 @@ namespace MRP
 
             if (req.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase))
             {
+                // Check authentication for creating media
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
                 try
                 {
                     using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
@@ -171,6 +182,13 @@ namespace MRP
                     if (!Guid.TryParse(dto.createdBy, out var createdByGuid))
                     {
                         await HttpServer.Json(context.Response, 400, new { error = "Invalid createdBy GUID" });
+                        return;
+                    }
+
+                    // Verify that the authenticated user is the creator
+                    if (createdByGuid != authenticatedUserId)
+                    {
+                        await AuthenticationHelper.SendForbiddenResponse(context.Response);
                         return;
                     }
 
@@ -201,6 +219,13 @@ namespace MRP
 
             if (req.HttpMethod.Equals("PUT", StringComparison.OrdinalIgnoreCase))
             {
+                // Check authentication for updating media
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
                 try
                 {
                     using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
@@ -215,6 +240,13 @@ namespace MRP
 
                     var existing = _mediaRepository.GetMediaById(uuid);
                     if (existing == null) { await HttpServer.Json(context.Response, 404, new { error = "Media not found" }); return; }
+
+                    // Verify that the authenticated user is the creator
+                    if (existing.createdBy.uuid != authenticatedUserId)
+                    {
+                        await AuthenticationHelper.SendForbiddenResponse(context.Response);
+                        return;
+                    }
 
                     // update fields
                     if (!string.IsNullOrWhiteSpace(dto.title)) existing.title = dto.title;
@@ -245,6 +277,13 @@ namespace MRP
 
             if (req.HttpMethod.Equals("DELETE", StringComparison.OrdinalIgnoreCase))
             {
+                // Check authentication for deleting media
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
                 var idq = req.QueryString["id"];
                 if (string.IsNullOrWhiteSpace(idq) || !Guid.TryParse(idq, out var id))
                 {
@@ -254,6 +293,13 @@ namespace MRP
 
                 var existing = _mediaRepository.GetMediaById(id);
                 if (existing == null) { await HttpServer.Json(context.Response, 404, new { error = "Media not found" }); return; }
+
+                // Verify that the authenticated user is the creator
+                if (existing.createdBy.uuid != authenticatedUserId)
+                {
+                    await AuthenticationHelper.SendForbiddenResponse(context.Response);
+                    return;
+                }
 
                 _mediaService.deleteMediaEntry(id);
 

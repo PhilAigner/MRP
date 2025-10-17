@@ -22,20 +22,22 @@ namespace MRP
 
     public sealed class RatingsHTTPEndpoint : IHttpEndpoint
     {
-        private readonly List<string> paths = new List<string> { "/api/ratings", "/api/ratings/approve" };
+        private readonly List<string> paths = new List<string> { "/api/ratings", "/api/ratings/approve", "/api/ratings/like" };
 
         private readonly RatingRepository _ratingRepository;
         private readonly UserRepository _userRepository;
         private readonly MediaRepository _mediaRepository;
         private readonly ProfileRepository _profileRepository;
+        private readonly TokenService _tokenService;
         private readonly MediaService _mediaService;
 
-        public RatingsHTTPEndpoint(RatingRepository ratingRepository, UserRepository userRepository, MediaRepository mediaRepository, ProfileRepository profileRepository)
+        public RatingsHTTPEndpoint(RatingRepository ratingRepository, UserRepository userRepository, MediaRepository mediaRepository, ProfileRepository profileRepository, TokenService tokenService)
         {
             _ratingRepository = ratingRepository ?? throw new ArgumentNullException(nameof(ratingRepository));
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
             _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
+            _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
             _mediaService = new MediaService(_mediaRepository, _ratingRepository, _profileRepository);
         }
 
@@ -50,6 +52,7 @@ namespace MRP
             var req = context.Request;
 
             // GET: /api/ratings?id=GUID | ?creator=GUID | ?media=GUID | ?minStars=N | ?maxStars=N
+            // Public endpoint - no authentication required
             if (req.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
                 var idq = req.QueryString["id"];
@@ -101,6 +104,13 @@ namespace MRP
             // POST: create rating
             if (req.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase))
             {
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
                 try
                 {
                     using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
@@ -116,6 +126,13 @@ namespace MRP
                     if (!Guid.TryParse(dto.mediaEntry, out var mediaGuid) || !Guid.TryParse(dto.user, out var userGuid))
                     {
                         await HttpServer.Json(context.Response, 400, new { error = "Invalid GUID for mediaEntry or user" });
+                        return;
+                    }
+
+                    // Verify that the authenticated user is creating their own rating
+                    if (userGuid != authenticatedUserId)
+                    {
+                        await AuthenticationHelper.SendForbiddenResponse(context.Response);
                         return;
                     }
 
@@ -178,6 +195,13 @@ namespace MRP
             // PUT: update rating by uuid
             if (req.HttpMethod.Equals("PUT", StringComparison.OrdinalIgnoreCase))
             {
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
                 try
                 {
                     using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
@@ -192,6 +216,13 @@ namespace MRP
 
                     var existing = _ratingRepository.GetById(uuid);
                     if (existing == null) { await HttpServer.Json(context.Response, 404, new { error = "Rating not found" }); return; }
+
+                    // Verify that the authenticated user owns this rating
+                    if (existing.user != authenticatedUserId)
+                    {
+                        await AuthenticationHelper.SendForbiddenResponse(context.Response);
+                        return;
+                    }
 
                     // Track comment changes for review statistics
                     bool hadComment = !string.IsNullOrWhiteSpace(existing.comment);
@@ -242,6 +273,13 @@ namespace MRP
             // DELETE: /api/ratings?id=GUID
             if (req.HttpMethod.Equals("DELETE", StringComparison.OrdinalIgnoreCase))
             {
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
                 var idq = req.QueryString["id"];
                 if (string.IsNullOrWhiteSpace(idq) || !Guid.TryParse(idq, out var id))
                 {
@@ -251,6 +289,13 @@ namespace MRP
 
                 var existing = _ratingRepository.GetById(id);
                 if (existing == null) { await HttpServer.Json(context.Response, 404, new { error = "Rating not found" }); return; }
+
+                // Verify that the authenticated user owns this rating
+                if (existing.user != authenticatedUserId)
+                {
+                    await AuthenticationHelper.SendForbiddenResponse(context.Response);
+                    return;
+                }
 
                 // Update profile statistics before deletion
                 var profile = _profileRepository.GetByOwnerId(existing.user);
@@ -277,6 +322,13 @@ namespace MRP
             if (req.HttpMethod.Equals("PATCH", StringComparison.OrdinalIgnoreCase) && 
                 req.Url!.AbsolutePath.ToLowerInvariant().Contains("/approve"))
             {
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
                 var idq = req.QueryString["id"];
                 var approverIdq = req.QueryString["approverId"];
                 
@@ -292,6 +344,13 @@ namespace MRP
                     return;
                 }
 
+                // Verify that the authenticated user is the one approving
+                if (approverId != authenticatedUserId)
+                {
+                    await AuthenticationHelper.SendForbiddenResponse(context.Response);
+                    return;
+                }
+
                 var success = _mediaService.approveRating(ratingId, approverId);
                 
                 if (!success)
@@ -301,6 +360,98 @@ namespace MRP
                 }
 
                 await HttpServer.Json(context.Response, 200, new { message = "Rating approved and made publicly visible" });
+                return;
+            }
+
+            // POST: /api/ratings/like?id=GUID&userId=GUID
+            // Like a rating
+            if (req.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase) && 
+                req.Url!.AbsolutePath.ToLowerInvariant().Contains("/like"))
+            {
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
+                var idq = req.QueryString["id"];
+                var userIdq = req.QueryString["userId"];
+                
+                if (string.IsNullOrWhiteSpace(idq) || !Guid.TryParse(idq, out var ratingId))
+                {
+                    await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'id' query parameter" });
+                    return;
+                }
+                
+                if (string.IsNullOrWhiteSpace(userIdq) || !Guid.TryParse(userIdq, out var userId))
+                {
+                    await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'userId' query parameter" });
+                    return;
+                }
+
+                // Verify that the authenticated user is liking the rating
+                if (userId != authenticatedUserId)
+                {
+                    await AuthenticationHelper.SendForbiddenResponse(context.Response);
+                    return;
+                }
+
+                var success = _mediaService.likeRating(ratingId, userId);
+                
+                if (!success)
+                {
+                    await HttpServer.Json(context.Response, 409, new { error = "Rating already liked or rating not found" });
+                    return;
+                }
+
+                await HttpServer.Json(context.Response, 200, new { message = "Rating liked successfully" });
+                return;
+            }
+
+            // DELETE: /api/ratings/like?id=GUID&userId=GUID
+            // Unlike a rating
+            if (req.HttpMethod.Equals("DELETE", StringComparison.OrdinalIgnoreCase) && 
+                req.Url!.AbsolutePath.ToLowerInvariant().Contains("/like"))
+            {
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
+                var idq = req.QueryString["id"];
+                var userIdq = req.QueryString["userId"];
+                
+                if (string.IsNullOrWhiteSpace(idq) || !Guid.TryParse(idq, out var ratingId))
+                {
+                    await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'id' query parameter" });
+                    return;
+                }
+                
+                if (string.IsNullOrWhiteSpace(userIdq) || !Guid.TryParse(userIdq, out var userId))
+                {
+                    await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'userId' query parameter" });
+                    return;
+                }
+
+                // Verify that the authenticated user is unliking the rating
+                if (userId != authenticatedUserId)
+                {
+                    await AuthenticationHelper.SendForbiddenResponse(context.Response);
+                    return;
+                }
+
+                var success = _mediaService.removeLikeFromRating(ratingId, userId);
+                
+                if (!success)
+                {
+                    await HttpServer.Json(context.Response, 404, new { error = "Like not found or rating not found" });
+                    return;
+                }
+
+                await HttpServer.Json(context.Response, 200, new { message = "Like removed successfully" });
                 return;
             }
 

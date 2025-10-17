@@ -20,13 +20,15 @@ namespace MRP
 
         private readonly UserRepository _userRepository;
         private readonly ProfileRepository _profileRepository;
+        private readonly TokenService _tokenService;
         private readonly UserService _userService;
 
-        public UserRegisterHTTPEndpoint(UserRepository userRepository, ProfileRepository profileRepository)
+        public UserRegisterHTTPEndpoint(UserRepository userRepository, ProfileRepository profileRepository, TokenService tokenService)
         {
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
-            _userService = new UserService(_userRepository, _profileRepository);
+            _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
+            _userService = new UserService(_userRepository, _profileRepository, _tokenService);
         }
 
         public bool CanHandle(HttpListenerRequest request)

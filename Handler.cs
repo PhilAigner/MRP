@@ -15,6 +15,8 @@ namespace MRP
 
         private ProfileRepository profileRepository = new ProfileRepository();
 
+        private TokenService tokenService = new TokenService();
+
 
         public Handler()
         {
@@ -92,16 +94,16 @@ namespace MRP
 
             List<IHttpEndpoint> HttpEndpoints = new List<IHttpEndpoint>
             {
-                // User endpints
-                new UserLoginHTTPEndpoint(),
-                new UserRegisterHTTPEndpoint(userRepository, profileRepository),
-                new UserProfileHTTPEndpoint(userRepository, profileRepository, ratingRepository, mediaRepository),
+                // User endpoints (login and register don't require authentication)
+                new UserLoginHTTPEndpoint(userRepository, profileRepository, tokenService),
+                new UserRegisterHTTPEndpoint(userRepository, profileRepository, tokenService),
+                new UserProfileHTTPEndpoint(userRepository, profileRepository, ratingRepository, mediaRepository, tokenService),
                 
-                // Media endpoint
-                new MediaHTTPEndpoint(mediaRepository, userRepository, ratingRepository, profileRepository),
+                // Media endpoint (requires authentication)
+                new MediaHTTPEndpoint(mediaRepository, userRepository, ratingRepository, profileRepository, tokenService),
                 
-                // Ratings endpoint
-                new RatingsHTTPEndpoint(ratingRepository, userRepository, mediaRepository, profileRepository),
+                // Ratings endpoint (requires authentication)
+                new RatingsHTTPEndpoint(ratingRepository, userRepository, mediaRepository, profileRepository, tokenService),
             };
 
             await HttpServer.RunServer("http://localhost:8081/api/", HttpEndpoints);

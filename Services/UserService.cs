@@ -11,11 +11,13 @@ namespace MRP
 
         private UserRepository users;
         private ProfileRepository profileRepository;
+        private TokenService tokenService;
 
-        public UserService(UserRepository _users, ProfileRepository _profileRepository)
+        public UserService(UserRepository _users, ProfileRepository _profileRepository, TokenService _tokenService)
         {
             users = _users;
             profileRepository = _profileRepository;
+            tokenService = _tokenService;
         }
 
         public Guid register(string username, string password)
@@ -31,11 +33,11 @@ namespace MRP
             return newUser.uuid;
         }
 
-        public Boolean login(string _username, string _password)
+        public string? login(string _username, string _password)
         {
             var user = users.GetUserByUsername(_username);
             //test if user exists
-            if (user == null) return false;
+            if (user == null) return null;
 
             //check password    TODO HASH
             if (((User)user).getPassword() == _password)
@@ -46,9 +48,11 @@ namespace MRP
                 {
                     profile.numberOfLogins++;
                 }
-                return true;
+                
+                // Generate and return token
+                return tokenService.GenerateToken(_username, user.uuid);
             }
-            else return false;
+            else return null;
         }
 
         public Profile? getProfile(Guid userId)

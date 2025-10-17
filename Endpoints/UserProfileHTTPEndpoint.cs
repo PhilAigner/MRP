@@ -28,14 +28,16 @@ namespace MRP
 
         private readonly UserRepository _userRepository;
         private readonly ProfileRepository _profileRepository;
+        private readonly TokenService _tokenService;
         private readonly UserService _userService;
         private readonly ProfileStatisticsService _statisticsService;
 
-        public UserProfileHTTPEndpoint(UserRepository userRepository, ProfileRepository profileRepository, RatingRepository ratingRepository, MediaRepository mediaRepository)
+        public UserProfileHTTPEndpoint(UserRepository userRepository, ProfileRepository profileRepository, RatingRepository ratingRepository, MediaRepository mediaRepository, TokenService tokenService)
         {
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
-            _userService = new UserService(_userRepository, _profileRepository);
+            _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
+            _userService = new UserService(_userRepository, _profileRepository, _tokenService);
             _statisticsService = new ProfileStatisticsService(_profileRepository, ratingRepository, mediaRepository);
         }
 
@@ -53,8 +55,16 @@ namespace MRP
         {
             var req = context.Request;
 
+            // GET: Get profile - requires authentication
             if (req.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
                 var userid = req.QueryString["userid"];
                 if (string.IsNullOrWhiteSpace(userid) || !Guid.TryParse(userid, out var userGuid))
                 {
@@ -86,8 +96,16 @@ namespace MRP
                 return;
             }
 
+            // PUT: Update profile - requires authentication and ownership
             if (req.HttpMethod.Equals("PUT", StringComparison.OrdinalIgnoreCase))
             {
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
                 try
                 {
                     using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
@@ -97,6 +115,13 @@ namespace MRP
                     if (dto == null || dto.user == Guid.Empty)
                     {
                         await HttpServer.Json(context.Response, 400, new { error = "Invalid profile data. 'user' required." });
+                        return;
+                    }
+
+                    // Check if user is updating their own profile
+                    if (dto.user != authenticatedUserId)
+                    {
+                        await AuthenticationHelper.SendForbiddenResponse(context.Response);
                         return;
                     }
 
@@ -147,13 +172,27 @@ namespace MRP
                 return;
             }
 
+            // POST: Recalculate statistics - requires authentication and ownership
             if (req.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase))
             {
-                // POST is used to recalculate statistics for a user
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
                 var userid = req.QueryString["userid"];
                 if (string.IsNullOrWhiteSpace(userid) || !Guid.TryParse(userid, out var userGuid))
                 {
                     await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'userid' query parameter" });
+                    return;
+                }
+
+                // Check if user is recalculating their own statistics
+                if (userGuid != authenticatedUserId)
+                {
+                    await AuthenticationHelper.SendForbiddenResponse(context.Response);
                     return;
                 }
 
