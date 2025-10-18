@@ -154,14 +154,7 @@ namespace MRP
                         return;
                     }
 
-                    // Check if user is updating their own profile
-                    if (userId != authenticatedUserId)
-                    {
-                        await AuthenticationHelper.SendForbiddenResponse(context.Response);
-                        return;
-                    }
-
-                    // Verify user exists
+                    // Verify user exists FIRST (before checking ownership)
                     var user = _userRepository.GetUserById(userId);
                     if (user == null)
                     {
@@ -169,11 +162,18 @@ namespace MRP
                         return;
                     }
 
-                    // Get existing profile
+                    // Get existing profile BEFORE checking ownership
                     var existingProfile = _userService.getProfile(userId);
                     if (existingProfile == null)
                     {
                         await HttpServer.Json(context.Response, 404, new { error = "Profile not found" });
+                        return;
+                    }
+
+                    // NOW check if user is updating their own profile (after we know it exists)
+                    if (userId != authenticatedUserId)
+                    {
+                        await AuthenticationHelper.SendForbiddenResponse(context.Response);
                         return;
                     }
 

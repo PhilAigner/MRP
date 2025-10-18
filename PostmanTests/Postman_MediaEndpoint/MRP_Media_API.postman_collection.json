@@ -1,0 +1,1775 @@
+{
+  "info": {
+    "name": "MRP Media API",
+    "description": "Complete Postman collection for Media HTTP Endpoint with comprehensive tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testMediaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "movieId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seriesId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "gameId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fsk0Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fsk6Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fsk18Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testUsername",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "Test123!",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Setup",
+      "item": [
+        {
+          "name": "Create Test User",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate unique username for this test run",
+                  "const timestamp = Date.now();",
+                  "const randomNum = Math.floor(Math.random() * 10000);",
+                  "const username = `testuser_${timestamp}_${randomNum}`;",
+                  "pm.collectionVariables.set('testUsername', username);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response has user object with uuid\", function () {",
+                  "  pm.expect(jsonData).to.have.property('user');",
+                  "  pm.expect(jsonData.user).to.have.property('uuid');",
+                  "  pm.collectionVariables.set('testUserId', jsonData.user.uuid);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success message\", function () {",
+                  "  pm.expect(jsonData).to.have.property('message');",
+                  "  pm.expect(jsonData.message).to.include('registered successfully');",
+                  "});",
+                  "",
+                  "pm.test(\"Response time is less than 500ms\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "register"
+              ]
+            },
+            "description": "Create a test user for authentication"
+          },
+          "response": []
+        },
+        {
+          "name": "Login Test User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.collectionVariables.set('authToken', jsonData.token);",
+                  "});",
+                  "",
+                  "pm.test(\"Token is not empty\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.not.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "login"
+              ]
+            },
+            "description": "Login to get authentication token"
+          },
+          "response": []
+        }
+      ],
+      "description": "Setup requests to create test user and authenticate"
+    },
+    {
+      "name": "Media CRUD Operations",
+      "item": [
+        {
+          "name": "Create Media - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has uuid\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('uuid');",
+                  "    pm.collectionVariables.set('testMediaId', jsonData.uuid);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success message\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.message).to.equal('Media created');",
+                  "});",
+                  "",
+                  "pm.test(\"UUID is valid GUID format\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "    pm.expect(jsonData.uuid).to.match(guidRegex);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"The Matrix\",\n  \"description\": \"A computer hacker learns about the true nature of reality\",\n  \"mediaType\": \"Movie\",\n  \"releaseYear\": 1999,\n  \"ageRestriction\": \"FSK16\",\n  \"genre\": \"Science Fiction\",\n  \"createdBy\": \"{{testUserId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Create a new media entry successfully"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Media - Missing Required Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message indicates missing fields\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "    pm.expect(jsonData.error).to.include('Missing required fields');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Missing title and createdBy\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Attempt to create media without required fields"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Media - Unauthorized",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"Error indicates unauthorized\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Unauthorized Movie\",\n  \"createdBy\": \"{{testUserId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Attempt to create media without authentication"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Media - Forbidden (Wrong User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test(\"Error indicates forbidden\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Forbidden Movie\",\n  \"createdBy\": \"00000000-0000-0000-0000-000000000001\",\n  \"mediaType\": \"Movie\",\n  \"releaseYear\": 2024\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Attempt to create media for a different user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Media by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains media details\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('uuid');",
+                  "    pm.expect(jsonData).to.have.property('title');",
+                  "    pm.expect(jsonData).to.have.property('description');",
+                  "    pm.expect(jsonData).to.have.property('mediaType');",
+                  "    pm.expect(jsonData).to.have.property('releaseYear');",
+                  "    pm.expect(jsonData).to.have.property('ageRestriction');",
+                  "    pm.expect(jsonData).to.have.property('genre');",
+                  "    pm.expect(jsonData).to.have.property('createdBy');",
+                  "    pm.expect(jsonData).to.have.property('averageScore');",
+                  "    pm.expect(jsonData).to.have.property('ratings');",
+                  "});",
+                  "",
+                  "pm.test(\"Media ID matches requested ID\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.uuid).to.equal(pm.collectionVariables.get('testMediaId'));",
+                  "});",
+                  "",
+                  "pm.test(\"Title is correct\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.title).to.equal('The Matrix');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{testMediaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{testMediaId}}"
+              ]
+            },
+            "description": "Retrieve a specific media entry by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Media by ID - Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error indicates media not found\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "    pm.expect(jsonData.error).to.equal('Media not found');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/00000000-0000-0000-0000-000000000999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "00000000-0000-0000-0000-000000000999"
+              ]
+            },
+            "description": "Attempt to retrieve non-existent media"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Media - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success message\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.message).to.equal('Media updated');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"The Matrix Reloaded\",\n  \"description\": \"Updated description for the sequel\",\n  \"releaseYear\": 2003\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{testMediaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{testMediaId}}"
+              ]
+            },
+            "description": "Update an existing media entry"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Media - Unauthorized",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Unauthorized Update\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{testMediaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{testMediaId}}"
+              ]
+            },
+            "description": "Attempt to update without authentication"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Media - Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error indicates media not found\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.equal('Media not found');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Update Non-existent\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media/00000000-0000-0000-0000-000000000999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "00000000-0000-0000-0000-000000000999"
+              ]
+            },
+            "description": "Attempt to update non-existent media"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Media - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test(\"Response body is empty\", function () {",
+                  "    pm.expect(pm.response.text()).to.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{testMediaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{testMediaId}}"
+              ]
+            },
+            "description": "Delete a media entry"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Media - Unauthorized",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{testMediaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{testMediaId}}"
+              ]
+            },
+            "description": "Attempt to delete without authentication"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Media - Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/00000000-0000-0000-0000-000000000999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "00000000-0000-0000-0000-000000000999"
+              ]
+            },
+            "description": "Attempt to delete non-existent media"
+          },
+          "response": []
+        }
+      ],
+      "description": "CRUD operations for media entries"
+    },
+    {
+      "name": "Media Types Tests",
+      "item": [
+        {
+          "name": "Create Movie",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Media type is Movie\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('uuid');",
+                  "    pm.collectionVariables.set('movieId', jsonData.uuid);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Inception\",\n  \"description\": \"A thief who steals corporate secrets through dream-sharing technology\",\n  \"mediaType\": \"Movie\",\n  \"releaseYear\": 2010,\n  \"ageRestriction\": \"FSK12\",\n  \"genre\": \"Science Fiction, Action\",\n  \"createdBy\": \"{{testUserId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Create a Movie type media entry"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Series",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Media created successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('uuid');",
+                  "    pm.collectionVariables.set('seriesId', jsonData.uuid);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Breaking Bad\",\n  \"description\": \"A chemistry teacher turned methamphetamine manufacturer\",\n  \"mediaType\": \"Series\",\n  \"releaseYear\": 2008,\n  \"ageRestriction\": \"FSK16\",\n  \"genre\": \"Crime, Drama, Thriller\",\n  \"createdBy\": \"{{testUserId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Create a Series type media entry"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Game",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Media created successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('uuid');",
+                  "    pm.collectionVariables.set('gameId', jsonData.uuid);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"The Witcher 3: Wild Hunt\",\n  \"description\": \"An open-world RPG following Geralt of Rivia\",\n  \"mediaType\": \"Game\",\n  \"releaseYear\": 2015,\n  \"ageRestriction\": \"FSK16\",\n  \"genre\": \"RPG, Fantasy, Action\",\n  \"createdBy\": \"{{testUserId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Create a Game type media entry"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Movie - Verify Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Media type is Movie (string)\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.mediaType).to.equal('Movie');",
+                  "});",
+                  "",
+                  "pm.test(\"Age restriction is string\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.ageRestriction).to.be.a('string');",
+                  "    pm.expect(jsonData.ageRestriction).to.equal('FSK12');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{movieId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{movieId}}"
+              ]
+            },
+            "description": "Verify Movie returns enum as string"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Series - Verify Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Media type is Series (string)\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.mediaType).to.equal('Series');",
+                  "});",
+                  "",
+                  "pm.test(\"Age restriction is string\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.ageRestriction).to.be.a('string');",
+                  "    pm.expect(jsonData.ageRestriction).to.equal('FSK16');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{seriesId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{seriesId}}"
+              ]
+            },
+            "description": "Verify Series returns enum as string"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Game - Verify Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Media type is Game (string)\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.mediaType).to.equal('Game');",
+                  "});",
+                  "",
+                  "pm.test(\"Age restriction is string\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.ageRestriction).to.be.a('string');",
+                  "    pm.expect(jsonData.ageRestriction).to.equal('FSK16');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{gameId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{gameId}}"
+              ]
+            },
+            "description": "Verify Game returns enum as string"
+          },
+          "response": []
+        }
+      ],
+      "description": "Tests for different media types (Movie, Series, Game)"
+    },
+    {
+      "name": "Age Restrictions Tests",
+      "item": [
+        {
+          "name": "Create Media - FSK0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Media created\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('fsk0Id', jsonData.uuid);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Finding Nemo\",\n  \"description\": \"A clownfish searches for his son\",\n  \"mediaType\": \"Movie\",\n  \"releaseYear\": 2003,\n  \"ageRestriction\": \"FSK0\",\n  \"genre\": \"Animation, Family\",\n  \"createdBy\": \"{{testUserId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Create media with FSK0 rating"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Media - FSK6",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Media created\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('fsk6Id', jsonData.uuid);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Harry Potter and the Philosopher's Stone\",\n  \"description\": \"A young wizard begins his magical education\",\n  \"mediaType\": \"Movie\",\n  \"releaseYear\": 2001,\n  \"ageRestriction\": \"FSK6\",\n  \"genre\": \"Fantasy, Adventure\",\n  \"createdBy\": \"{{testUserId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Create media with FSK6 rating"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Media - FSK18",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Media created\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('fsk18Id', jsonData.uuid);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Deadpool\",\n  \"description\": \"A mercenary with accelerated healing powers\",\n  \"mediaType\": \"Movie\",\n  \"releaseYear\": 2016,\n  \"ageRestriction\": \"FSK18\",\n  \"genre\": \"Action, Comedy\",\n  \"createdBy\": \"{{testUserId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Create media with FSK18 rating"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify FSK0 Returns String",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Age restriction is FSK0 string\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.ageRestriction).to.equal('FSK0');",
+                  "    pm.expect(jsonData.ageRestriction).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{fsk0Id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{fsk0Id}}"
+              ]
+            },
+            "description": "Verify FSK0 is returned as string"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify FSK6 Returns String",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Age restriction is FSK6 string\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.ageRestriction).to.equal('FSK6');",
+                  "    pm.expect(jsonData.ageRestriction).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{fsk6Id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{fsk6Id}}"
+              ]
+            },
+            "description": "Verify FSK6 is returned as string"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify FSK18 Returns String",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Age restriction is FSK18 string\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.ageRestriction).to.equal('FSK18');",
+                  "    pm.expect(jsonData.ageRestriction).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media/{{fsk18Id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media",
+                "{{fsk18Id}}"
+              ]
+            },
+            "description": "Verify FSK18 is returned as string"
+          },
+          "response": []
+        }
+      ],
+      "description": "Tests for all FSK age restriction levels"
+    },
+    {
+      "name": "Filter and Search Tests",
+      "item": [
+        {
+          "name": "Get All Media",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Array contains media entries\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ]
+            },
+            "description": "Get all media entries"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Media Type - Movie",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All results are Movies\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(function(media) {",
+                  "        pm.expect(media.mediaType).to.equal('Movie');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media?mediaType=Movie",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ],
+              "query": [
+                {
+                  "key": "mediaType",
+                  "value": "Movie"
+                }
+              ]
+            },
+            "description": "Filter media by type Movie"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Media Type - Series",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All results are Series\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(function(media) {",
+                  "        pm.expect(media.mediaType).to.equal('Series');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media?mediaType=Series",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ],
+              "query": [
+                {
+                  "key": "mediaType",
+                  "value": "Series"
+                }
+              ]
+            },
+            "description": "Filter media by type Series"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Media Type - Game",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All results are Games\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(function(media) {",
+                  "        pm.expect(media.mediaType).to.equal('Game');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media?mediaType=Game",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ],
+              "query": [
+                {
+                  "key": "mediaType",
+                  "value": "Game"
+                }
+              ]
+            },
+            "description": "Filter media by type Game"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Age Restriction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All results have FSK16\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(function(media) {",
+                  "        pm.expect(media.ageRestriction).to.equal('FSK16');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media?ageRestriction=FSK16",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ],
+              "query": [
+                {
+                  "key": "ageRestriction",
+                  "value": "FSK16"
+                }
+              ]
+            },
+            "description": "Filter media by age restriction"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Genre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All results contain Action genre\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(function(media) {",
+                  "        pm.expect(media.genre.toLowerCase()).to.include('action');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media?genre=Action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ],
+              "query": [
+                {
+                  "key": "genre",
+                  "value": "Action"
+                }
+              ]
+            },
+            "description": "Filter media by genre"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Year Range",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All results within year range\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(function(media) {",
+                  "        pm.expect(media.releaseYear).to.be.at.least(2000);",
+                  "        pm.expect(media.releaseYear).to.be.at.most(2020);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media?minYear=2000&maxYear=2020",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ],
+              "query": [
+                {
+                  "key": "minYear",
+                  "value": "2000"
+                },
+                {
+                  "key": "maxYear",
+                  "value": "2020"
+                }
+              ]
+            },
+            "description": "Filter media by year range"
+          },
+          "response": []
+        },
+        {
+          "name": "Sort by Title Ascending",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Results are sorted by title\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    for (var i = 0; i < jsonData.length - 1; i++) {",
+                  "        pm.expect(jsonData[i].title.toLowerCase() <= jsonData[i+1].title.toLowerCase()).to.be.true;",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media?sortBy=title&sortOrder=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "title"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            },
+            "description": "Get media sorted by title"
+          },
+          "response": []
+        },
+        {
+          "name": "Combined Filter - Type and Year",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Results match all filters\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(function(media) {",
+                  "        pm.expect(media.mediaType).to.equal('Movie');",
+                  "        pm.expect(media.releaseYear).to.be.at.least(2000);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/media?mediaType=Movie&minYear=2000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "media"
+              ],
+              "query": [
+                {
+                  "key": "mediaType",
+                  "value": "Movie"
+                },
+                {
+                  "key": "minYear",
+                  "value": "2000"
+                }
+              ]
+            },
+            "description": "Test combined filters"
+          },
+          "response": []
+        }
+      ],
+      "description": "Tests for filtering and searching media"
+    }
+  ]
+}

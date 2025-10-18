@@ -47,11 +47,13 @@ namespace MRP
         public bool CanHandle(HttpListenerRequest request)
         {
             var path = request.Url!.AbsolutePath.TrimEnd('/').ToLowerInvariant();
-            
-            // Handle /api/media or /api/media/{mediaId}
-            if (path.StartsWith("/api/media"))
-                return true;
-                
+
+            foreach (var elm in paths)
+            {
+                // Handle /api/media or /api/media/{mediaId}
+                if (path.StartsWith("/api/media"))
+                    return true;
+            }
             return false;
         }
 

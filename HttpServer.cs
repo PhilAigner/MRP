@@ -156,10 +156,16 @@ namespace MRP
         #region Helpers (response)
         public static async Task Json(HttpListenerResponse resp, int status, object payload)
         {
-            var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+            var options = new JsonSerializerOptions 
+            { 
+                WriteIndented = true,
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            };
+            var json = JsonSerializer.Serialize(payload, options);
             var bytes = Encoding.UTF8.GetBytes(json);
 
             // Ensure CORS headers are set (in case they weren't already)
+            // ONLY FOR LOCAL TESTING - IN DEPLOY, CORS SHOULD BE HANDLED GLOBALLY
             if (!resp.Headers.AllKeys.Contains("Access-Control-Allow-Origin"))
             {
                 AddCorsHeaders(resp);

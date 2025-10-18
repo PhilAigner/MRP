@@ -79,19 +79,6 @@ namespace MRP
         public async Task<int> StartAsync()
         {
 
-
-            //testcode:
-            //UserService userService = new UserService(userRepository, profileRepository);
-
-            /*
-            Boolean res = userService.login("123", "baum");
-            res = userService.login("USer1", "wrong");
-            res = userService.login("USer1", "pwd");
-            Guid id = userService.register("123", "baum");
-            res = userService.login("123", "baum");
-            id = userService.register("123", "baum");
-            */
-
             List<IHttpEndpoint> HttpEndpoints = new List<IHttpEndpoint>
             {
                 // User endpoints (login and register don't require authentication)
@@ -106,6 +93,7 @@ namespace MRP
                 new RatingsHTTPEndpoint(ratingRepository, userRepository, mediaRepository, profileRepository, tokenService),
             };
 
+            
             await HttpServer.RunServer("http://localhost:8080/api/", HttpEndpoints);
 
 
