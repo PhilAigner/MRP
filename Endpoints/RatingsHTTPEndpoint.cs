@@ -22,9 +22,7 @@ namespace MRP
 
     public sealed class RatingsHTTPEndpoint : IHttpEndpoint
     {
-        private readonly List<string> paths = new List<string> { "/api/ratings", "/api/ratings/approve", "/api/ratings/like" };
-
-        private readonly RatingRepository _ratingRepository;
+                private readonly RatingRepository _ratingRepository;
         private readonly UserRepository _userRepository;
         private readonly MediaRepository _mediaRepository;
         private readonly ProfileRepository _profileRepository;
@@ -480,51 +478,7 @@ namespace MRP
                 return;
             }
 
-            // PATCH: /api/ratings/approve?id=GUID&approverId=GUID
-            // Approves a rating and makes it publicly visible (only media entry owner can approve)
-            if (req.HttpMethod.Equals("PATCH", StringComparison.OrdinalIgnoreCase) && 
-                req.Url!.AbsolutePath.ToLowerInvariant().Contains("/approve"))
-            {
-                // Check authentication
-                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
-                {
-                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
-                    return;
-                }
-
-                var idq = req.QueryString["id"];
-                var approverIdq = req.QueryString["approverId"];
-                
-                if (string.IsNullOrWhiteSpace(idq) || !Guid.TryParse(idq, out var ratingId))
-                {
-                    await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'id' query parameter" });
-                    return;
-                }
-                
-                if (string.IsNullOrWhiteSpace(approverIdq) || !Guid.TryParse(approverIdq, out var approverId))
-                {
-                    await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'approverId' query parameter" });
-                    return;
-                }
-
-                // Verify that the authenticated user is the one approving
-                if (approverId != authenticatedUserId)
-                {
-                    await AuthenticationHelper.SendForbiddenResponse(context.Response);
-                    return;
-                }
-
-                var success = _mediaService.approveRating(ratingId, approverId);
-                
-                if (!success)
-                {
-                    await HttpServer.Json(context.Response, 403, new { error = "Only the media entry owner can approve ratings" });
-                    return;
-                }
-
-                await HttpServer.Json(context.Response, 200, new { message = "Rating approved and made publicly visible" });
-                return;
-            }
+ 
 
             await HttpServer.Json(context.Response, 405, new { error = "Method Not Allowed" });
         }

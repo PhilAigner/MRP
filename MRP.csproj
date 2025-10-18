@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="postman\" />
+    <Compile Remove="postman\**" />
+    <EmbeddedResource Remove="postman\**" />
+    <None Remove="postman\**" />
   </ItemGroup>
 
 </Project>
