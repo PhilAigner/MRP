@@ -1,5 +1,5 @@
 // API Base URL
-const API_BASE = 'http://localhost:8081/api';
+const API_BASE = 'http://localhost:8080/api';
 
 // Storage for user/media IDs and token
 let savedData = {

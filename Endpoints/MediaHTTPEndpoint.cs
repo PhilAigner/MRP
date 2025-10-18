@@ -47,22 +47,48 @@ namespace MRP
         public bool CanHandle(HttpListenerRequest request)
         {
             var path = request.Url!.AbsolutePath.TrimEnd('/').ToLowerInvariant();
-            return path.StartsWith(paths[0]);
+            
+            // Handle /api/media or /api/media/{mediaId}
+            if (path.StartsWith("/api/media"))
+                return true;
+                
+            return false;
         }
 
         public async Task HandleAsync(HttpListenerContext context, CancellationToken ct)
         {
             var req = context.Request;
+            var path = req.Url!.AbsolutePath.TrimEnd('/');
+
+            // Extract mediaId from path: /api/media/{mediaId}
+            Guid? mediaIdFromPath = null;
+            var pathSegments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (pathSegments.Length == 3 && pathSegments[0] == "api" && pathSegments[1] == "media")
+            {
+                if (Guid.TryParse(pathSegments[2], out var parsedGuid))
+                {
+                    mediaIdFromPath = parsedGuid;
+                }
+            }
 
             if (req.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
                 // GET doesn't require authentication - public endpoint for browsing
                 
-                // Special case: Get single media by ID
-                var idq = req.QueryString["id"];
-                if (!string.IsNullOrWhiteSpace(idq) && Guid.TryParse(idq, out var id))
+                // Special case: Get single media by ID from path or query
+                Guid? mediaId = mediaIdFromPath;
+                if (!mediaId.HasValue)
                 {
-                    var ent = _mediaRepository.GetMediaById(id);
+                    var idq = req.QueryString["id"];
+                    if (!string.IsNullOrWhiteSpace(idq) && Guid.TryParse(idq, out var id))
+                    {
+                        mediaId = id;
+                    }
+                }
+
+                if (mediaId.HasValue)
+                {
+                    var ent = _mediaRepository.GetMediaById(mediaId.Value);
                     if (ent == null) { await HttpServer.Json(context.Response, 404, new { error = "Media not found" }); return; }
                     await HttpServer.Json(context.Response, 200, ent);
                     return;
@@ -232,9 +258,19 @@ namespace MRP
                     var json = await reader.ReadToEndAsync();
                     var dto = JsonSerializer.Deserialize<MediaDto>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                    if (dto == null || string.IsNullOrWhiteSpace(dto.uuid) || !Guid.TryParse(dto.uuid, out var uuid))
+                    // Get mediaId from path or body
+                    Guid uuid;
+                    if (mediaIdFromPath.HasValue)
                     {
-                        await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid media uuid for update" });
+                        uuid = mediaIdFromPath.Value;
+                    }
+                    else if (dto != null && !string.IsNullOrWhiteSpace(dto.uuid) && Guid.TryParse(dto.uuid, out var parsedUuid))
+                    {
+                        uuid = parsedUuid;
+                    }
+                    else
+                    {
+                        await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid media uuid in path or body" });
                         return;
                     }
 
@@ -248,13 +284,16 @@ namespace MRP
                         return;
                     }
 
-                    // update fields
-                    if (!string.IsNullOrWhiteSpace(dto.title)) existing.title = dto.title;
-                    if (dto.description != null) existing.description = dto.description;
-                    if (!string.IsNullOrWhiteSpace(dto.genre)) existing.genre = dto.genre;
-                    if (dto.releaseYear != null) existing.releaseYear = dto.releaseYear.Value;
-                    if (!string.IsNullOrWhiteSpace(dto.mediaType) && Enum.TryParse<EMediaType>(dto.mediaType, true, out var mtype)) existing.mediaType = mtype;
-                    if (!string.IsNullOrWhiteSpace(dto.ageRestriction) && Enum.TryParse<EFSK>(dto.ageRestriction, true, out var fsk)) existing.ageRestriction = fsk;
+                    if (dto != null)
+                    {
+                        // update fields
+                        if (!string.IsNullOrWhiteSpace(dto.title)) existing.title = dto.title;
+                        if (dto.description != null) existing.description = dto.description;
+                        if (!string.IsNullOrWhiteSpace(dto.genre)) existing.genre = dto.genre;
+                        if (dto.releaseYear != null) existing.releaseYear = dto.releaseYear.Value;
+                        if (!string.IsNullOrWhiteSpace(dto.mediaType) && Enum.TryParse<EMediaType>(dto.mediaType, true, out var mtype)) existing.mediaType = mtype;
+                        if (!string.IsNullOrWhiteSpace(dto.ageRestriction) && Enum.TryParse<EFSK>(dto.ageRestriction, true, out var fsk)) existing.ageRestriction = fsk;
+                    }
 
                     // repository is in-memory list; replace item to persist change if necessary
                     var list = _mediaRepository.GetAll();
@@ -284,11 +323,20 @@ namespace MRP
                     return;
                 }
 
-                var idq = req.QueryString["id"];
-                if (string.IsNullOrWhiteSpace(idq) || !Guid.TryParse(idq, out var id))
+                // Get mediaId from path or query
+                Guid id;
+                if (mediaIdFromPath.HasValue)
                 {
-                    await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'id' query parameter" });
-                    return;
+                    id = mediaIdFromPath.Value;
+                }
+                else
+                {
+                    var idq = req.QueryString["id"];
+                    if (string.IsNullOrWhiteSpace(idq) || !Guid.TryParse(idq, out id))
+                    {
+                        await HttpServer.Json(context.Response, 400, new { error = "Missing or invalid 'id' in path or query parameter" });
+                        return;
+                    }
                 }
 
                 var existing = _mediaRepository.GetMediaById(id);
@@ -303,7 +351,7 @@ namespace MRP
 
                 _mediaService.deleteMediaEntry(id);
 
-                await HttpServer.Json(context.Response, 200, new { message = "Media deleted" });
+                await HttpServer.Json(context.Response, 204, null);  // 204 No Content as per OpenAPI spec
                 return;
             }
 

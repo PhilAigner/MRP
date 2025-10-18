@@ -1,0 +1,551 @@
+openapi: 3.0.3
+info:
+  title: Media Ratings Platform (MRP) API
+  version: 2.0.0
+  description: Complete OpenAPI specification for MRP with token-based authentication.
+servers:
+- url: http://localhost:8080/api
+  description: Local development server
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'Enter your token in format: username-mrpToken'
+  schemas:
+    UserCredentials:
+      type: object
+      required:
+      - username
+      - password
+      properties:
+        username:
+          type: string
+          example: 'john_doe'
+        password:
+          type: string
+          format: password
+          example: 'SecurePass123!'
+    MediaInput:
+      type: object
+      required:
+      - title
+      - createdBy
+      properties:
+        title:
+          type: string
+          example: 'The Matrix'
+        description:
+          type: string
+          example: 'A computer hacker learns about the true nature of reality'
+        mediaType:
+          type: string
+          enum: [Movie, Series, Documentary, Game]
+          example: 'Movie'
+        releaseYear:
+          type: integer
+          minimum: 1900
+          maximum: 2100
+          example: 1999
+        genre:
+          type: string
+          example: 'Action, Sci-Fi'
+        ageRestriction:
+          type: string
+          enum: [FSK0, FSK6, FSK12, FSK16, FSK18]
+          example: 'FSK16'
+        createdBy:
+          type: string
+          format: uuid
+          example: '550e8400-e29b-41d4-a716-446655440000'
+    RatingInput:
+      type: object
+      required:
+      - stars
+      properties:
+        stars:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          example: 'Great movie with amazing visuals!'
+        publicVisible:
+          type: boolean
+          example: true
+    UserProfileUpdate:
+      type: object
+      properties:
+        sobriquet:
+          type: string
+          example: 'Movie Buff'
+        aboutMe:
+          type: string
+          example: 'I love watching sci-fi movies'
+        favoriteGenre:
+          type: string
+          example: 'Sci-Fi'
+        favoriteMediaType:
+          type: string
+          example: 'Movie'
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: 'Resource not found'
+security:
+  - BearerAuth: []
+tags:
+- name: Auth
+  description: Authentication operations (no auth required)
+- name: User
+  description: User profile operations (auth required)
+- name: Media
+  description: Media management operations
+- name: Rating
+  description: Rating operations
+paths:
+/users/register:
+  post:
+    tags:
+    - Auth
+    summary: Register a new user
+    description: Create a new user account
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserCredentials'
+    responses:
+      '201':
+        description: User registered successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                user:
+                  type: object
+                  properties:
+                    uuid:
+                      type: string
+                      format: uuid
+                    username:
+                      type: string
+      '409':
+        description: Username already exists
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+/users/login:
+  post:
+    tags:
+    - Auth
+    summary: User login
+    description: Login and receive authentication token
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserCredentials'
+    responses:
+      '200':
+        description: Login successful
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                username:
+                  type: string
+                token:
+                  type: string
+                  description: 'Bearer token for authentication (format: username-mrpToken)'
+      '401':
+        description: Invalid credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+/users/{userId}/profile:
+  get:
+    tags:
+    - User
+    summary: Get user profile
+    description: Retrieve user profile information (requires authentication)
+    parameters:
+    - in: path
+      name: userId
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: User ID
+    responses:
+      '200':
+        description: User profile
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uuid:
+                  type: string
+                  format: uuid
+                user:
+                  type: string
+                  format: uuid
+                numberOfLogins:
+                  type: integer
+                numberOfRatingsGiven:
+                  type: integer
+                numberOfMediaAdded:
+                  type: integer
+                numberOfReviewsWritten:
+                  type: integer
+                favoriteGenre:
+                  type: string
+                favoriteMediaType:
+                  type: string
+                sobriquet:
+                  type: string
+                aboutMe:
+                  type: string
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      '404':
+        description: Profile not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+  put:
+    tags:
+    - User
+    summary: Update user profile
+    description: Update user profile (must be own profile)
+    parameters:
+    - in: path
+      name: userId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserProfileUpdate'
+    responses:
+      '200':
+        description: Profile updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden - can only update own profile
+/media:
+  get:
+    tags:
+    - Media
+    summary: List media entries
+    description: Get all media entries with optional filters and sorting (public access)
+    security: []
+    parameters:
+    - in: query
+      name: titleContains
+      schema:
+        type: string
+      description: Filter by title (case-insensitive substring match)
+    - in: query
+      name: genre
+      schema:
+        type: string
+      description: Filter by genre
+    - in: query
+      name: mediaType
+      schema:
+        type: string
+        enum: [Movie, Series, Documentary, Game]
+      description: Filter by media type
+    - in: query
+      name: minYear
+      schema:
+        type: integer
+      description: Minimum release year
+    - in: query
+      name: maxYear
+      schema:
+        type: integer
+      description: Maximum release year
+    - in: query
+      name: ageRestriction
+      schema:
+        type: string
+        enum: [FSK0, FSK6, FSK12, FSK16, FSK18]
+      description: Filter by age restriction
+    - in: query
+      name: sortBy
+      schema:
+        type: string
+        enum: [title, year, score, releaseYear, averageScore]
+      description: Sort field
+    - in: query
+      name: sortOrder
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: asc
+      description: Sort order
+    responses:
+      '200':
+        description: List of media entries
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+  post:
+    tags:
+    - Media
+    summary: Create media entry
+    description: Create a new media entry (requires authentication)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MediaInput'
+    responses:
+      '201':
+        description: Media created
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                uuid:
+                  type: string
+                  format: uuid
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden - createdBy must match authenticated user
+/media/{mediaId}:
+  get:
+    tags:
+    - Media
+    summary: Get media by ID
+    description: Get detailed information about a media entry (public access)
+    security: []
+    parameters:
+    - in: path
+      name: mediaId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    responses:
+      '200':
+        description: Media entry details
+      '404':
+        description: Media not found
+  put:
+    tags:
+    - Media
+    summary: Update media entry
+    description: Update media entry (must be creator)
+    parameters:
+    - in: path
+      name: mediaId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MediaInput'
+    responses:
+      '200':
+        description: Media updated
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden - only creator can update
+      '404':
+        description: Media not found
+  delete:
+    tags:
+    - Media
+    summary: Delete media
+    description: Delete media entry (must be creator)
+    parameters:
+    - in: path
+      name: mediaId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    responses:
+      '204':
+        description: Media deleted successfully
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden - only creator can delete
+      '404':
+        description: Media not found
+/media/{mediaId}/rate:
+  post:
+    tags:
+    - Rating
+    summary: Rate media entry
+    description: Create a rating for a media entry
+    parameters:
+    - in: path
+      name: mediaId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RatingInput'
+    responses:
+      '201':
+        description: Rating created
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                uuid:
+                  type: string
+                  format: uuid
+      '401':
+        description: Unauthorized
+      '404':
+        description: Media not found
+/ratings/{ratingId}:
+  get:
+    tags:
+    - Rating
+    summary: Get rating by ID
+    description: Get a specific rating (public access)
+    security: []
+    parameters:
+    - in: path
+      name: ratingId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    responses:
+      '200':
+        description: Rating details
+      '404':
+        description: Rating not found
+  put:
+    tags:
+    - Rating
+    summary: Update a rating
+    description: Update a rating (must be rating creator)
+    parameters:
+    - in: path
+      name: ratingId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RatingInput'
+    responses:
+      '200':
+        description: Rating updated
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden - only creator can update
+      '404':
+        description: Rating not found
+  delete:
+    tags:
+    - Rating
+    summary: Delete a rating
+    description: Delete a rating (must be rating creator)
+    parameters:
+    - in: path
+      name: ratingId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    responses:
+      '204':
+        description: Rating deleted successfully
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden - only creator can delete
+      '404':
+        description: Rating not found
+/ratings/{ratingId}/like:
+  post:
+    tags:
+    - Rating
+    summary: Like a rating
+    description: Like a rating (requires authentication)
+    parameters:
+    - in: path
+      name: ratingId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    responses:
+      '200':
+        description: Rating liked successfully
+      '401':
+        description: Unauthorized
+      '404':
+        description: Rating not found
+      '409':
+        description: Rating already liked

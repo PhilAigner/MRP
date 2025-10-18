@@ -1,0 +1,387 @@
+openapi: 3.0.3
+info:
+  title: Media Ratings Platform (MRP) API
+  version: 1.0.0
+  description: Tagged version of the full OpenAPI spec for MRP.
+servers:
+- url: http://localhost:8080/api
+tags:
+- name: Auth
+- name: User
+- name: Media
+- name: Rating
+- name: Favorites
+- name: Recommendation
+- name: Leaderboard
+paths:
+  /users/register:
+    post:
+      tags:
+      - Auth
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCredentials'
+      responses:
+        '201':
+          description: User registered
+  /users/login:
+    post:
+      tags:
+      - Auth
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCredentials'
+      responses:
+        '200':
+          description: Login successful
+  /users/{userId}/profile:
+    get:
+      tags:
+      - User
+      summary: Get user profile
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: User profile
+    put:
+      tags:
+      - User
+      summary: Update user profile
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated
+  /users/{userId}/ratings:
+    get:
+      tags:
+      - User
+      summary: Get user rating history
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Rating history
+  /users/{userId}/favorites:
+    get:
+      tags:
+      - User
+      summary: Get user favorites
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Favorites list
+  /users/{userId}/recommendations:
+    get:
+      tags:
+      - Recommendation
+      summary: Get recommendations
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+      - in: query
+        name: type
+        schema:
+          type: string
+          enum:
+          - genre
+          - content
+      responses:
+        '200':
+          description: Recommended media
+  /media:
+    get:
+      tags:
+      - Media
+      summary: List media entries
+      parameters:
+      - in: query
+        name: title
+        schema:
+          type: string
+      - in: query
+        name: genre
+        schema:
+          type: string
+      - in: query
+        name: mediaType
+        schema:
+          type: string
+      - in: query
+        name: releaseYear
+        schema:
+          type: integer
+      - in: query
+        name: ageRestriction
+        schema:
+          type: integer
+      - in: query
+        name: rating
+        schema:
+          type: number
+      - in: query
+        name: sortBy
+        schema:
+          type: string
+          enum:
+          - title
+          - year
+          - score
+      responses:
+        '200':
+          description: Filtered list
+    post:
+      tags:
+      - Media
+      summary: Create media entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaInput'
+      responses:
+        '201':
+          description: Media created
+  /media/{mediaId}:
+    delete:
+      tags:
+      - Media
+      summary: Delete media
+      parameters:
+      - in: path
+        name: mediaId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '204':
+          description: Media deleted
+    get:
+      tags:
+      - Media
+      summary: Get media by ID
+      parameters:
+      - in: path
+        name: mediaId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Media entry details
+    put:
+      tags:
+      - Media
+      summary: Update media entry
+      parameters:
+      - in: path
+        name: mediaId
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaInput'
+      responses:
+        '200':
+          description: Media updated
+  /media/{mediaId}/rate:
+    post:
+      tags:
+      - Rating
+      summary: Rate media entry
+      parameters:
+      - in: path
+        name: mediaId
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingInput'
+      responses:
+        '201':
+          description: Rating submitted
+  /ratings/{ratingId}/like:
+    post:
+      tags:
+      - Rating
+      summary: Like a rating
+      parameters:
+      - in: path
+        name: ratingId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Rating liked
+  /media/{mediaId}/favorite:
+    post:
+      tags:
+      - Favorites
+      summary: Mark as favorite
+      parameters:
+      - in: path
+        name: mediaId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Marked as favorite
+    delete:
+      tags:
+      - Favorites
+      summary: Unmark as favorite
+      parameters:
+      - in: path
+        name: mediaId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '204':
+          description: Unmarked
+  /leaderboard:
+    get:
+      tags:
+      - Leaderboard
+      summary: Get most active users
+      responses:
+        '200':
+          description: Leaderboard list
+  /ratings/{ratingId}:
+    put:
+      tags:
+      - Rating
+      summary: Update a rating
+      parameters:
+      - in: path
+        name: ratingId
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingInput'
+      responses:
+        '200':
+          description: Rating updated
+    delete:
+      tags:
+      - Rating
+      summary: Delete a rating
+      parameters:
+      - in: path
+        name: ratingId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '204':
+          description: Rating deleted
+  /ratings/{ratingId}/confirm:
+    post:
+      tags:
+      - Rating
+      summary: Confirm rating comment
+      parameters:
+      - in: path
+        name: ratingId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Comment confirmed
+components:
+  schemas:
+    UserCredentials:
+      type: object
+      required:
+      - username
+      - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    MediaInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        mediaType:
+          type: string
+        releaseYear:
+          type: integer
+        genres:
+          type: array
+          items:
+            type: string
+        ageRestriction:
+          type: integer
+    RatingInput:
+      type: object
+      properties:
+        stars:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+    UserProfileUpdate:
+      type: object
+      properties:
+        email:
+          type: string
+        favoriteGenre:
+          type: string
