@@ -736,8 +736,8 @@ async function createRating() {
             mediaEntry,
             user,
             stars,
-            comment,
-            publicVisible
+            comment
+            // Note: publicVisible is not sent as it's now only set via the approve endpoint
         });
         
         // Check if we should use the shorthand endpoint (when the user is rating their own media)
@@ -747,8 +747,8 @@ async function createRating() {
             // Use the shorthand endpoint which takes fewer parameters
             const result = await apiCall(`/media/${mediaEntry}/rate`, 'POST', {
                 stars,
-                comment,
-                publicVisible
+                comment
+                // publicVisible removed as it can only be set via approval
             }, true);
             
             displayResponse('rating-create-response', result.status, result.data, result.ok);
@@ -782,8 +782,8 @@ async function createRating() {
                 mediaEntry,
                 user,
                 stars,
-                comment: comment || undefined,  // Only send if not empty
-                publicVisible
+                comment: comment || undefined  // Only send if not empty
+                // publicVisible removed as it can only be set via approval
             }, true);
             
             displayResponse('rating-create-response', result.status, result.data, result.ok);
@@ -842,7 +842,7 @@ async function updateRating() {
     const body = { uuid };
     if (!isNaN(stars) && stars >= 1 && stars <= 5) body.stars = stars;
     if (comment !== undefined) body.comment = comment;
-    if (publicVisible !== undefined) body.publicVisible = publicVisible;
+    // publicVisible removed as it can only be set via approval
     
     console.log(`Attempting to update rating: ${uuid}`, body);
     

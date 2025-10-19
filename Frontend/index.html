@@ -628,8 +628,9 @@
                     </div>
                     <div class="form-group">
                         <label>
-                            <input type="checkbox" id="rating-public"> Public Visible
+                            <input type="checkbox" id="rating-public" disabled> Public Visible (Set via approval only)
                         </label>
+                        <p style="font-size: 0.8em; color: #666; margin-top: 5px;">Note: Ratings become publicly visible only when approved by the media owner</p>
                     </div>
                     <button class="btn btn-primary" onclick="createRating()">Create Rating</button>
                     <div id="rating-create-response" class="response-area hidden"></div>
@@ -671,8 +672,9 @@
                     </div>
                     <div class="form-group">
                         <label>
-                            <input type="checkbox" id="update-rating-public"> Public Visible
+                            <input type="checkbox" id="update-rating-public" disabled> Public Visible (Set via approval only)
                         </label>
+                        <p style="font-size: 0.8em; color: #666; margin-top: 5px;">Note: Ratings become publicly visible only when approved by the media owner</p>
                     </div>
                     <button class="btn btn-primary" onclick="updateRating()">Update Rating</button>
                     <div id="rating-update-response" class="response-area hidden"></div>
@@ -694,7 +696,7 @@
                     <h2>Approve Rating</h2>
                     <div class="info-box">
                         <h4>ℹ️ Info</h4>
-                        <p>Only the owner of the media entry can approve ratings. Once approved, the rating becomes publicly visible and is added to the media entry's ratings list.</p>
+                        <p><strong>This is the only way to make ratings publicly visible.</strong> Only the owner of the media entry can approve ratings. Once approved, the rating becomes publicly visible and is added to the media entry's ratings list.</p>
                     </div>
                     
                     <div class="form-group">
