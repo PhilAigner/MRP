@@ -24,8 +24,6 @@ namespace MRP
 
     public sealed class UserProfileHTTPEndpoint : IHttpEndpoint
     {
-        private readonly List<string> paths = new List<string> { "/api/users/", "/api/users/profile" };
-
         private readonly UserRepository _userRepository;
         private readonly ProfileRepository _profileRepository;
         private readonly TokenService _tokenService;

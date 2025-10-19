@@ -305,6 +305,38 @@
         .hidden {
             display: none;
         }
+        
+        .auth-status {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-top: 10px;
+        }
+        
+        .auth-status.logged-in {
+            background: rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+        }
+        
+        .auth-status.logged-out {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+        
+        .logout-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: #d32f2f;
+        }
     </style>
 </head>
 <body>
@@ -312,7 +344,8 @@
         <header>
             <h1>Paigners MRP API Test Frontend</h1>
             <p>Media Rating Platform - API Testing Interface</p>
-            <p>v0.3</p>
+            <p>v0.4</p>
+            <div id="authStatus" style="margin-top: 10px;"></div>
         </header>
 
         <div class="main-content">
@@ -460,6 +493,7 @@
                         <input type="text" id="media-creator" placeholder="User UUID">
                     </div>
                     <button class="btn btn-primary" onclick="createMedia()">Create Media</button>
+                    <button class="btn btn-secondary" onclick="createTestMediaEntries()" style="background-color: #28a745;">Create 5 Test Media Entries</button>
                     <div id="media-create-response" class="response-area hidden"></div>
                 </section>
 
@@ -612,6 +646,10 @@
                         <label>Filter by Media (optional)</label>
                         <input type="text" id="rating-list-media" placeholder="Media UUID">
                     </div>
+                    <div class="form-group">
+                        <label>Get specific rating by ID</label>
+                        <input type="text" id="rating-get-id" placeholder="Rating UUID">
+                    </div>
                     <button class="btn btn-primary" onclick="listRatings()">Load Ratings</button>
                     <div id="rating-list-response" class="response-area hidden"></div>
                 </section>
@@ -630,6 +668,11 @@
                     <div class="form-group">
                         <label>Comment</label>
                         <textarea id="update-rating-comment" placeholder="Updated review"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="update-rating-public"> Public Visible
+                        </label>
                     </div>
                     <button class="btn btn-primary" onclick="updateRating()">Update Rating</button>
                     <div id="rating-update-response" class="response-area hidden"></div>

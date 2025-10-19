@@ -7,13 +7,15 @@ let savedData = {
     lastViewedUserId: '',
     mediaId: '',
     ratingId: '',
-    token: ''  // Add token storage
+    token: '',  // Add token storage
+    username: '' // Store username for display
 };
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadSavedData();
     updateSavedDataDisplay();
+    updateAuthStatus();
 });
 
 // Save data to localStorage
@@ -54,7 +56,34 @@ function updateSavedDataDisplay() {
     if (savedData.token) {
         html += `<div class="saved-item"><span>?? Auth Token:</span> <code style="color: green;">${savedData.token.substring(0, 20)}...</code></div>`;
     }
+    if (savedData.username) {
+        html += `<div class="saved-item"><span>?? Logged in as:</span> <code style="color: blue;">${savedData.username}</code></div>`;
+    }
     display.innerHTML = html;
+    
+    // Update auth status
+    updateAuthStatus();
+}
+
+// Update authentication status in UI
+function updateAuthStatus() {
+    const authStatusElement = document.getElementById('authStatus');
+    if (!authStatusElement) return;
+    
+    if (savedData.token) {
+        authStatusElement.innerHTML = `
+            <div class="auth-status logged-in">
+                <span>?? Logged in${savedData.username ? ' as ' + savedData.username : ''}</span>
+                <button onclick="logoutUser()" class="logout-btn">Logout</button>
+            </div>
+        `;
+    } else {
+        authStatusElement.innerHTML = `
+            <div class="auth-status logged-out">
+                <span>? Not logged in</span>
+            </div>
+        `;
+    }
 }
 
 // Show section
@@ -110,10 +139,52 @@ async function apiCall(endpoint, method = 'GET', body = null, requiresAuth = fal
     }
     
     try {
+        console.log(`API Call: ${method} ${API_BASE}${endpoint}`);
+        if (body) console.log('Request body:', body);
+        
         const response = await fetch(`${API_BASE}${endpoint}`, options);
-        const data = await response.json();
-        return { status: response.status, data, ok: response.ok };
+        let data;
+        
+        try {
+            // Only try to parse JSON if there's content
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json") && response.status !== 204) {
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    console.error("Error parsing JSON response:", e);
+                    data = { error: "Could not parse server response" };
+                }
+            } else if (response.status === 204) {
+                // No content
+                data = { message: "Success - No Content" };
+            } else {
+                // Handle text response or other content types
+                const text = await response.text();
+                if (text && text.trim()) {
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        data = { message: text || "No response body" };
+                    }
+                } else {
+                    data = { message: "No response body" };
+                }
+            }
+        } catch (parseError) {
+            console.error("Error handling response:", parseError);
+            data = { error: "Failed to process response" };
+        }
+        
+        console.log(`Response: ${response.status}`, data);
+        return { 
+            status: response.status, 
+            data, 
+            ok: response.ok,
+            headers: Object.fromEntries(response.headers.entries())
+        };
     } catch (error) {
+        console.error("API call error:", error);
         return { status: 0, data: { error: error.message }, ok: false };
     }
 }
@@ -153,6 +224,8 @@ async function loginUser() {
     // Save user ID and token after successful login
     if (result.ok && result.data.token) {
         savedData.token = result.data.token;
+        savedData.username = username;
+        
         // Extract user ID from response if available, otherwise try to get from username
         const user = await apiCall(`/users/profile?userid=${savedData.userId}`, 'GET', null, true);
         if (user.ok && user.data.user) {
@@ -160,7 +233,20 @@ async function loginUser() {
             savedData.lastViewedUserId = user.data.user;
         }
         saveData();
+        updateAuthStatus();
         alert('Login successful! Token saved for authenticated requests.');
+    }
+}
+
+// Logout function
+function logoutUser() {
+    if (confirm('Are you sure you want to log out?')) {
+        // Clear authentication data
+        savedData.token = '';
+        savedData.username = '';
+        saveData();
+        updateAuthStatus();
+        alert('Logged out successfully');
     }
 }
 
@@ -269,6 +355,129 @@ async function createMedia() {
     }
 }
 
+// Function to create 5 test media entries
+async function createTestMediaEntries() {
+    if (!savedData.token) {
+        alert('Please login first to create test media entries');
+        return;
+    }
+
+    if (!savedData.userId) {
+        alert('User ID not found. Please register or login first');
+        return;
+    }
+
+    const testMedia = [
+        {
+            title: "Test Movie 1",
+            description: "A test action movie with explosions and thrills",
+            mediaType: "Movie",
+            releaseYear: 2022,
+            ageRestriction: "FSK16",
+            genre: "Action"
+        },
+        {
+            title: "Test Series 1",
+            description: "A comedy series about a group of friends",
+            mediaType: "Series",
+            releaseYear: 2023,
+            ageRestriction: "FSK12",
+            genre: "Comedy"
+        },
+        {
+            title: "Test Documentary",
+            description: "Educational documentary about space exploration",
+            mediaType: "Documentary",
+            releaseYear: 2021,
+            ageRestriction: "FSK0",
+            genre: "Science"
+        },
+        {
+            title: "Test Game",
+            description: "An adventure game in a fantasy world",
+            mediaType: "Game",
+            releaseYear: 2024,
+            ageRestriction: "FSK12",
+            genre: "Adventure"
+        },
+        {
+            title: "Test Horror Movie",
+            description: "A scary movie with ghosts and suspense",
+            mediaType: "Movie",
+            releaseYear: 2023,
+            ageRestriction: "FSK18",
+            genre: "Horror"
+        }
+    ];
+
+    const responseElement = document.getElementById('media-create-response');
+    responseElement.classList.remove('hidden');
+    responseElement.innerHTML = '<p>Creating 5 test media entries...</p>';
+
+    const createdIds = [];
+    let successCount = 0;
+    let errorMessages = '';
+    
+    for (let i = 0; i < testMedia.length; i++) {
+        const media = testMedia[i];
+        try {
+            console.log(`Creating test media ${i+1}/5:`, {
+                ...media,
+                createdBy: savedData.userId
+            });
+            
+            const result = await apiCall('/media', 'POST', {
+                ...media,
+                createdBy: savedData.userId
+            }, true);
+            
+            console.log(`Response for media ${i+1}:`, result);
+            
+            if (result.ok && result.data.uuid) {
+                createdIds.push(result.data.uuid);
+                successCount++;
+                // Save the last one as current media ID
+                if (i === testMedia.length - 1) {
+                    savedData.mediaId = result.data.uuid;
+                    saveData();
+                }
+            } else {
+                errorMessages += `<p>Error creating media entry ${i+1}: ${result.data.error || 'Unknown error'}</p>`;
+            }
+            
+            // Update progress in the UI
+            responseElement.innerHTML = `<p>Creating test media entries: ${i + 1}/${testMedia.length} completed</p>`;
+            
+        } catch (error) {
+            console.error(`Error creating media ${i+1}:`, error);
+            errorMessages += `<p>Error creating media entry ${i+1}: ${error.message}</p>`;
+        }
+        
+        // Add a small delay between requests to avoid overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    if (successCount === testMedia.length) {
+        responseElement.innerHTML = `
+            <div class="status-badge status-success">? Success</div>
+            <h3>Created 5 Test Media Entries:</h3>
+            <div class="response-content">Created ${createdIds.length} media entries successfully!
+IDs: ${JSON.stringify(createdIds, null, 2)}</div>
+        `;
+    } else {
+        responseElement.innerHTML = `
+            <div class="status-badge ${successCount > 0 ? 'status-success' : 'status-error'}">
+                ${successCount > 0 ? '? Partial Success' : '? Error'}
+            </div>
+            <h3>Created ${successCount} out of 5 test media entries</h3>
+            <div class="response-content">
+                ${successCount > 0 ? `Successfully created IDs: ${JSON.stringify(createdIds, null, 2)}<br><br>` : ''}
+                ${errorMessages}
+            </div>
+        `;
+    }
+}
+
 async function listMedia() {
     const result = await apiCall('/media', 'GET');
     displayResponse('media-list-response', result.status, result.data, result.ok);
@@ -357,7 +566,8 @@ async function deleteMedia() {
         return;
     }
     
-    const result = await apiCall(`/media?id=${id}`, 'DELETE', null, true);
+    // Updated endpoint to match Postman collection
+    const result = await apiCall(`/media/${id}`, 'DELETE', null, true);
     displayResponse('media-delete-response', result.status, result.data, result.ok);
 }
 
@@ -385,28 +595,64 @@ async function createRating() {
         return;
     }
     
-    const result = await apiCall('/ratings', 'POST', {
-        mediaEntry,
-        user,
-        stars,
-        comment,
-        publicVisible
-    }, true);
-    
-    displayResponse('rating-create-response', result.status, result.data, result.ok);
-    
-    if (result.ok && result.data.uuid) {
-        savedData.ratingId = result.data.uuid;
-        saveData();
+    // Check if we should use the shorthand endpoint (when the user is rating their own entry)
+    if (user === savedData.userId) {
+        console.log("Using shorthand endpoint for rating own media");
+        // Use shorthand endpoint
+        try {
+            const result = await apiCall(`/media/${mediaEntry}/rate`, 'POST', {
+                stars,
+                comment,
+                publicVisible
+            }, true);
+            
+            displayResponse('rating-create-response', result.status, result.data, result.ok);
+            
+            if (result.ok && result.data.uuid) {
+                savedData.ratingId = result.data.uuid;
+                saveData();
+                alert('Rating created successfully using shorthand endpoint!');
+            }
+        } catch (error) {
+            console.error("Error using shorthand endpoint:", error);
+            displayResponse('rating-create-response', 500, { error: `Error: ${error.message}` }, false);
+        }
+    } else {
+        console.log("Using standard endpoint for rating");
+        // Use standard endpoint
+        try {
+            const result = await apiCall('/ratings', 'POST', {
+                mediaEntry,
+                user,
+                stars,
+                comment,
+                publicVisible
+            }, true);
+            
+            displayResponse('rating-create-response', result.status, result.data, result.ok);
+            
+            if (result.ok && result.data.uuid) {
+                savedData.ratingId = result.data.uuid;
+                saveData();
+            }
+        } catch (error) {
+            console.error("Error using standard endpoint:", error);
+            displayResponse('rating-create-response', 500, { error: `Error: ${error.message}` }, false);
+        }
     }
 }
 
 async function listRatings() {
     const creator = document.getElementById('rating-list-creator').value;
     const media = document.getElementById('rating-list-media').value;
+    const ratingId = document.getElementById('rating-get-id').value;
     
     let endpoint = '/ratings';
-    if (creator) {
+    
+    // If a specific rating ID is provided, get that single rating
+    if (ratingId) {
+        endpoint = `/ratings/${ratingId}`;
+    } else if (creator) {
         endpoint += `?creator=${creator}`;
     } else if (media) {
         endpoint += `?media=${media}`;
@@ -420,6 +666,7 @@ async function updateRating() {
     const uuid = document.getElementById('update-rating-id').value;
     const stars = parseInt(document.getElementById('update-rating-stars').value);
     const comment = document.getElementById('update-rating-comment').value;
+    const publicVisible = document.getElementById('update-rating-public').checked;
     
     if (!uuid) {
         alert('Please enter Rating ID');
@@ -432,11 +679,26 @@ async function updateRating() {
     }
     
     const body = { uuid };
-    if (stars) body.stars = stars;
-    if (comment) body.comment = comment;
+    if (!isNaN(stars) && stars >= 1 && stars <= 5) body.stars = stars;
+    if (comment !== undefined) body.comment = comment;
+    if (publicVisible !== undefined) body.publicVisible = publicVisible;
     
-    const result = await apiCall('/ratings', 'PUT', body, true);
-    displayResponse('rating-update-response', result.status, result.data, result.ok);
+    console.log(`Attempting to update rating: ${uuid}`, body);
+    
+    try {
+        // Updated endpoint to match Postman collection
+        const result = await apiCall(`/ratings/${uuid}`, 'PUT', body, true);
+        displayResponse('rating-update-response', result.status, result.data, result.ok);
+        
+        if (result.ok) {
+            alert('Rating successfully updated!');
+        } else {
+            alert(`Failed to update rating: ${result.data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error("Error updating rating:", error);
+        displayResponse('rating-update-response', 500, { error: `Error: ${error.message}` }, false);
+    }
 }
 
 async function deleteRating() {
@@ -456,13 +718,32 @@ async function deleteRating() {
         return;
     }
     
-    const result = await apiCall(`/ratings?id=${id}`, 'DELETE', null, true);
-    displayResponse('rating-delete-response', result.status, result.data, result.ok);
+    console.log(`Attempting to delete rating: ${id}`);
+    
+    try {
+        // Updated endpoint to match Postman collection
+        const result = await apiCall(`/ratings/${id}`, 'DELETE', null, true);
+        displayResponse('rating-delete-response', result.status, result.data, result.ok);
+        
+        if (result.ok) {
+            alert('Rating successfully deleted!');
+            // Clear the rating ID from saved data if it was the one we just deleted
+            if (savedData.ratingId === id) {
+                savedData.ratingId = '';
+                saveData();
+            }
+        } else {
+            alert(`Failed to delete rating: ${result.data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error("Error deleting rating:", error);
+        displayResponse('rating-delete-response', 500, { error: `Error: ${error.message}` }, false);
+    }
 }
 
 async function approveRating() {
     const ratingId = document.getElementById('approve-rating-id').value || savedData.ratingId;
-    let approverId = document.getElementById('approve-approver-id').value || savedData.userId;
+    const approverId = document.getElementById('approve-approver-id').value || savedData.userId;
     
     if (!ratingId) {
         alert('Please enter a Rating ID');
@@ -479,25 +760,39 @@ async function approveRating() {
         return;
     }
     
-    const result = await apiCall(`/ratings/approve?id=${ratingId}&approverId=${approverId}`, 'PATCH', null, true);
-    displayResponse('rating-approve-response', result.status, result.data, result.ok);
-    
-    if (result.ok) {
-        alert('Rating successfully approved and made publicly visible!');
+    console.log(`Attempting to approve rating: ${ratingId} by approver: ${approverId}`);
+    try {
+        // The backend expects the media owner to be the one approving
+        // Let's try both endpoints to see which one works
+        let result;
+        
+        try {
+            // First try the path parameter version
+            result = await apiCall(`/ratings/${ratingId}/approve`, 'PATCH', null, true);
+        } catch (error) {
+            console.log("First approval attempt failed, trying with query parameters");
+            // If that fails, try the query parameter version
+            result = await apiCall(`/ratings/approve?id=${ratingId}&approverId=${approverId}`, 'PATCH', null, true);
+        }
+        
+        displayResponse('rating-approve-response', result.status, result.data, result.ok);
+        
+        if (result.ok) {
+            alert('Rating successfully approved and made publicly visible!');
+        } else {
+            alert(`Failed to approve rating: ${result.data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error("Error approving rating:", error);
+        displayResponse('rating-approve-response', 500, { error: `Error: ${error.message}` }, false);
     }
 }
 
 async function likeRating() {
     const ratingId = document.getElementById('like-rating-id').value || savedData.ratingId;
-    let userId = document.getElementById('like-user-id').value || savedData.userId;
     
     if (!ratingId) {
         alert('Please enter a Rating ID');
-        return;
-    }
-    
-    if (!userId) {
-        alert('Please enter your User ID');
         return;
     }
     
@@ -506,25 +801,28 @@ async function likeRating() {
         return;
     }
     
-    const result = await apiCall(`/ratings/like?id=${ratingId}&userId=${userId}`, 'POST', null, true);
-    displayResponse('rating-like-response', result.status, result.data, result.ok);
-    
-    if (result.ok) {
-        alert('Rating liked successfully! ??');
+    console.log(`Attempting to like rating: ${ratingId}`);
+    try {
+        // Updated endpoint to match Postman collection
+        const result = await apiCall(`/ratings/${ratingId}/like`, 'POST', null, true);
+        displayResponse('rating-like-response', result.status, result.data, result.ok);
+        
+        if (result.ok) {
+            alert('Rating liked successfully! ??');
+        } else {
+            alert(`Failed to like rating: ${result.data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error("Error liking rating:", error);
+        displayResponse('rating-like-response', 500, { error: `Error: ${error.message}` }, false);
     }
 }
 
 async function unlikeRating() {
     const ratingId = document.getElementById('like-rating-id').value || savedData.ratingId;
-    let userId = document.getElementById('like-user-id').value || savedData.userId;
     
     if (!ratingId) {
         alert('Please enter a Rating ID');
-        return;
-    }
-    
-    if (!userId) {
-        alert('Please enter your User ID');
         return;
     }
     
@@ -533,11 +831,20 @@ async function unlikeRating() {
         return;
     }
     
-    const result = await apiCall(`/ratings/like?id=${ratingId}&userId=${userId}`, 'DELETE', null, true);
-    displayResponse('rating-like-response', result.status, result.data, result.ok);
-    
-    if (result.ok) {
-        alert('Like removed successfully! ??');
+    console.log(`Attempting to unlike rating: ${ratingId}`);
+    try {
+        // Updated endpoint to match Postman collection
+        const result = await apiCall(`/ratings/${ratingId}/like`, 'DELETE', null, true);
+        displayResponse('rating-like-response', result.status, result.data, result.ok);
+        
+        if (result.ok) {
+            alert('Like removed successfully! ??');
+        } else {
+            alert(`Failed to unlike rating: ${result.data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error("Error unliking rating:", error);
+        displayResponse('rating-like-response', 500, { error: `Error: ${error.message}` }, false);
     }
 }
 

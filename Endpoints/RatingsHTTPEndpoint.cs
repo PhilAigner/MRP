@@ -43,7 +43,7 @@ namespace MRP
         {
             var path = request.Url!.AbsolutePath.TrimEnd('/').ToLowerInvariant();
             
-            // Handle /api/ratings, /api/ratings/{ratingId}, /api/ratings/{ratingId}/like, /api/media/{mediaId}/rate
+            // Handle /api/ratings, /api/ratings/{ratingId}, /api/ratings/{ratingId}/like, /api/ratings/{ratingId}/approve, /api/media/{mediaId}/rate
             if (path.StartsWith("/api/ratings") || path.Contains("/rate"))
                 return true;
                 
@@ -177,6 +177,62 @@ namespace MRP
                 }
 
                 await HttpServer.Json(context.Response, 200, new { message = "Rating liked successfully" });
+                return;
+            }
+            
+            // Handle /api/ratings/{ratingId}/like - DELETE to unlike
+            if (path.Contains("/like") && req.HttpMethod.Equals("DELETE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!ratingIdFromPath.HasValue)
+                {
+                    await HttpServer.Json(context.Response, 400, new { error = "Missing rating ID in path" });
+                    return;
+                }
+
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
+                var success = _mediaService.removeLikeFromRating(ratingIdFromPath.Value, authenticatedUserId);
+                
+                if (!success)
+                {
+                    await HttpServer.Json(context.Response, 409, new { error = "Rating not liked or rating not found" });
+                    return;
+                }
+
+                await HttpServer.Json(context.Response, 200, new { message = "Rating unliked successfully" });
+                return;
+            }
+            
+            // Handle /api/ratings/{ratingId}/approve - POST to approve a rating
+            if (path.Contains("/approve") && req.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!ratingIdFromPath.HasValue)
+                {
+                    await HttpServer.Json(context.Response, 400, new { error = "Missing rating ID in path" });
+                    return;
+                }
+
+                // Check authentication
+                if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
+                {
+                    await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
+                    return;
+                }
+
+                var success = _mediaService.approveRating(ratingIdFromPath.Value, authenticatedUserId);
+                
+                if (!success)
+                {
+                    await HttpServer.Json(context.Response, 403, new { error = "Failed to approve rating. Only the media entry owner can approve ratings." });
+                    return;
+                }
+
+                await HttpServer.Json(context.Response, 200, new { message = "Rating approved successfully" });
                 return;
             }
 
