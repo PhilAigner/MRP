@@ -631,7 +631,57 @@
 			"response": []
 		},
 		{
-			"name": "12. Rate Media (Shorthand)",
+			"name": "12. Delete Rating",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Rating deleted successfully\", function () {",
+							"    pm.expect(pm.response.code).to.equal(204);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log('Pre-request for delete: ratingId_rating = ' + pm.collectionVariables.get('ratingId_rating'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{userToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/ratings/{{ratingId_rating}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"ratings",
+						"{{ratingId_rating}}"
+					]
+				},
+				"description": "Delete an existing rating. Requires authentication, and the authenticated user must own the rating."
+			},
+			"response": []
+		},
+		{
+			"name": "13. Rate Media (Shorthand)",
 			"event": [
 				{
 					"listen": "test",
@@ -689,56 +739,6 @@
 					]
 				},
 				"description": "Create a rating using the shorthand endpoint. Requires authentication, and the user ID is extracted from the authentication token."
-			},
-			"response": []
-		},
-		{
-			"name": "13. Delete Rating",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Rating deleted successfully\", function () {",
-							"    pm.expect(pm.response.code).to.equal(204);",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							"console.log('Pre-request for delete: ratingId_rating = ' + pm.collectionVariables.get('ratingId_rating'));"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "DELETE",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{userToken}}",
-						"type": "text"
-					}
-				],
-				"url": {
-					"raw": "http://localhost:8080/api/ratings/{{ratingId_rating}}",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"ratings",
-						"{{ratingId_rating}}"
-					]
-				},
-				"description": "Delete an existing rating. Requires authentication, and the authenticated user must own the rating."
 			},
 			"response": []
 		},
