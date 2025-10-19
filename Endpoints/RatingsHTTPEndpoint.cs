@@ -17,12 +17,12 @@ namespace MRP
         public string? user { get; set; }
         public int? stars { get; set; }
         public string? comment { get; set; }
-        public bool? publicVisible { get; set; }
+        public bool? publicVisible { get; }
     }
 
     public sealed class RatingsHTTPEndpoint : IHttpEndpoint
     {
-                private readonly RatingRepository _ratingRepository;
+        private readonly RatingRepository _ratingRepository;
         private readonly UserRepository _userRepository;
         private readonly MediaRepository _mediaRepository;
         private readonly ProfileRepository _profileRepository;
@@ -43,8 +43,12 @@ namespace MRP
         {
             var path = request.Url!.AbsolutePath.TrimEnd('/').ToLowerInvariant();
             
-            // Handle /api/ratings, /api/ratings/{ratingId}, /api/ratings/{ratingId}/like, /api/ratings/{ratingId}/approve, /api/media/{mediaId}/rate
-            if (path.StartsWith("/api/ratings") || path.Contains("/rate"))
+            // Handle /api/ratings endpoints
+            if (path.StartsWith("/api/ratings"))
+                return true;
+            
+            // Handle specific /api/media/{mediaId}/rate endpoint
+            if (path.Contains("/media/") && path.EndsWith("/rate"))
                 return true;
                 
             return false;
@@ -131,10 +135,7 @@ namespace MRP
                         var createdRating = _ratingRepository.GetAll()
                             .FirstOrDefault(r => r.mediaEntry == mediaId && r.user == userGuid);
                         
-                        if (createdRating != null && dto.publicVisible.HasValue)
-                        {
-                            createdRating.publicVisible = dto.publicVisible.Value;
-                        }
+
 
                         await HttpServer.Json(context.Response, 201, new { message = "Rating created", uuid = createdRating?.uuid ?? Guid.Empty });
                         return;
@@ -367,10 +368,7 @@ namespace MRP
                     var createdRating = _ratingRepository.GetAll()
                         .FirstOrDefault(r => r.mediaEntry == mediaGuid && r.user == userGuid);
                     
-                    if (createdRating != null && dto.publicVisible.HasValue)
-                    {
-                        createdRating.publicVisible = dto.publicVisible.Value;
-                    }
+
 
                     await HttpServer.Json(context.Response, 201, new { message = "Rating created", uuid = createdRating?.uuid ?? Guid.Empty });
                     return;
@@ -437,7 +435,7 @@ namespace MRP
                         
                         if (dto.stars != null) existing.stars = dto.stars.Value;
                         if (dto.comment != null) existing.comment = dto.comment;
-                        if (dto.publicVisible != null) existing.publicVisible = dto.publicVisible.Value;
+
 
                         // Update review count if comment status changed
                         if (!hadComment && willHaveComment)

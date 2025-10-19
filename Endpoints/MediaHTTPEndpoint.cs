@@ -48,12 +48,24 @@ namespace MRP
         {
             var path = request.Url!.AbsolutePath.TrimEnd('/').ToLowerInvariant();
 
-            foreach (var elm in paths)
+            // First check for paths that should NOT be handled by this endpoint
+            // More precise check using path segments
+            var pathSegments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (pathSegments.Length >= 4 && 
+                string.Equals(pathSegments[0], "api", StringComparison.OrdinalIgnoreCase) && 
+                string.Equals(pathSegments[1], "media", StringComparison.OrdinalIgnoreCase) && 
+                string.Equals(pathSegments[pathSegments.Length - 1], "rate", StringComparison.OrdinalIgnoreCase))
             {
-                // Handle /api/media or /api/media/{mediaId}
-                if (path.StartsWith("/api/media"))
-                    return true;
+                // "/api/media/{mediaId}/rate" should be handled by RatingsHTTPEndpoint
+                return false;
             }
+
+            // Then check for paths this endpoint SHOULD handle
+            if (path.StartsWith("/api/media"))
+            {
+                return true;
+            }
+            
             return false;
         }
 
