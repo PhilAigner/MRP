@@ -1,0 +1,845 @@
+{
+	"info": {
+		"_postman_id": "e8f2a3b0-5a9c-4bda-8c0d-d8b2c51f8c54",
+		"name": "3 MRP Ratings API",
+		"description": "Tests for the MRP Ratings API endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Setup - Create Test User",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Store the created user ID",
+							"const responseJson = pm.response.json();",
+							"console.log('User registration response:', JSON.stringify(responseJson));",
+							"",
+							"let userId_rating = null;",
+							"",
+							"if (responseJson && responseJson.user && responseJson.user.uuid) {",
+							"    userId_rating = responseJson.user.uuid;",
+							"    pm.collectionVariables.set('userId_rating', userId_rating);",
+							"    console.log('User created with ID: ' + userId_rating);",
+							"} else {",
+							"    console.log('User creation failed or user already exists');",
+							"}",
+							"",
+							"// Check for success status code",
+							"pm.test(\"User created successfully\", function () {",
+							"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+							"});",
+							"",
+							"// Verify userId_rating was stored",
+							"console.log('Stored userId_rating variable value: ' + pm.collectionVariables.get('userId_rating'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"testpassword123\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/users/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"users",
+						"register"
+					]
+				},
+				"description": "Create a test user for use in subsequent tests"
+			},
+			"response": []
+		},
+		{
+			"name": "2. Setup - Login Test User",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Store the auth token",
+							"const responseJson = pm.response.json();",
+							"console.log('User login response:', JSON.stringify(responseJson));",
+							"",
+							"let token = null;",
+							"",
+							"if (responseJson && responseJson.token) {",
+							"    token = responseJson.token;",
+							"    pm.collectionVariables.set('userToken', token);",
+							"    console.log('Auth token received and stored');",
+							"} else {",
+							"    console.log('Login failed or token not received');",
+							"}",
+							"",
+							"// Check for success status code",
+							"pm.test(\"Login successful\", function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"});",
+							"",
+							"// Verify token was stored",
+							"console.log('Stored token: ' + (pm.collectionVariables.get('userToken') ? 'Token present' : 'Token missing'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"testpassword123\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/users/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"users",
+						"login"
+					]
+				},
+				"description": "Login with the test user to get an authentication token"
+			},
+			"response": []
+		},
+		{
+			"name": "3. Setup - Create Test Media",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Store the created media ID",
+							"const responseJson = pm.response.json();",
+							"console.log('Media creation response:', JSON.stringify(responseJson));",
+							"",
+							"// Make sure the userId_rating from previous step is available",
+							"console.log('Currently stored userId_rating: ' + pm.collectionVariables.get('userId_rating'));",
+							"",
+							"let mediaId_rating = null;",
+							"",
+							"if (responseJson && responseJson.uuid) {",
+							"    mediaId_rating = responseJson.uuid;",
+							"    console.log('Media ID found directly in response.uuid');",
+							"} else if (responseJson && responseJson.message && responseJson.uuid) {",
+							"    mediaId_rating = responseJson.uuid;",
+							"    console.log('Media ID found in response with message');",
+							"}",
+							"",
+							"if (mediaId_rating) {",
+							"    pm.collectionVariables.set('mediaId_rating', mediaId_rating);",
+							"    console.log('Media created with ID: ' + mediaId_rating);",
+							"    console.log('Stored mediaId_rating variable: ' + pm.collectionVariables.get('mediaId_rating'));",
+							"} else {",
+							"    console.log('Media creation failed or ID not found in response');",
+							"    console.log('Response keys:', Object.keys(responseJson).join(', '));",
+							"}",
+							"",
+							"// Check for success status code",
+							"pm.test(\"Media created successfully\", function () {",
+							"    pm.expect(pm.response.code).to.equal(201);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{userToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Test Movie\",\n    \"mediaType\": \"Movie\",\n    \"createdBy\": \"{{userId_rating}}\",\n    \"description\": \"This is a test movie for rating tests\",\n    \"releaseYear\": 2023,\n    \"genre\": \"Action\",\n    \"ageRestriction\": \"FSK12\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/media",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"media"
+					]
+				},
+				"description": "Create a test media entry to be rated in the tests"
+			},
+			"response": []
+		},
+		{
+			"name": "4. Get All Ratings (Baseline)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Get all ratings request succeeded\", function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/ratings",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"ratings"
+					]
+				},
+				"description": "Get all ratings. This is a public endpoint that doesn't require authentication."
+			},
+			"response": []
+		},
+		{
+			"name": "5. Create Rating",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Store the created rating ID",
+							"const responseJson = pm.response.json();",
+							"console.log('Rating creation response:', JSON.stringify(responseJson));",
+							"",
+							"// Log request body and variables for debugging",
+							"try {",
+							"    const requestBody = JSON.parse(pm.request.body.raw);",
+							"    console.log('Request sent with:', {",
+							"        mediaEntry: requestBody.mediaEntry,",
+							"        user: requestBody.user,",
+							"        stars: requestBody.stars",
+							"    });",
+							"} catch (e) {",
+							"    console.log('Could not parse request body');",
+							"}",
+							"",
+							"console.log('Using stored variables:', {",
+							"    mediaId_rating: pm.collectionVariables.get('mediaId_rating'),",
+							"    userId_rating: pm.collectionVariables.get('userId_rating')",
+							"});",
+							"",
+							"let ratingId_rating = null;",
+							"",
+							"if (responseJson && responseJson.uuid) {",
+							"    ratingId_rating = responseJson.uuid;",
+							"    console.log('Rating ID found directly in response.uuid');",
+							"} else if (responseJson && responseJson.message && responseJson.uuid) {",
+							"    ratingId_rating = responseJson.uuid;",
+							"    console.log('Rating ID found in response with message');",
+							"}",
+							"",
+							"if (ratingId_rating) {",
+							"    pm.collectionVariables.set('ratingId_rating', ratingId_rating);",
+							"    console.log('Rating created with ID: ' + ratingId_rating);",
+							"    console.log('Stored ratingId_rating variable: ' + pm.collectionVariables.get('ratingId_rating'));",
+							"} else {",
+							"    console.log('Failed to extract rating ID from response');",
+							"    console.log('Response keys:', Object.keys(responseJson).join(', '));",
+							"}",
+							"",
+							"// Check for success status code",
+							"pm.test(\"Rating created successfully\", function () {",
+							"    pm.expect(pm.response.code).to.equal(201);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Double-check the variables before sending the request",
+							"console.log('Pre-request: mediaId_rating = ' + pm.collectionVariables.get('mediaId_rating'));",
+							"console.log('Pre-request: userId_rating = ' + pm.collectionVariables.get('userId_rating'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{userToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"mediaEntry\": \"{{mediaId_rating}}\",\n    \"user\": \"{{userId_rating}}\",\n    \"stars\": 4,\n    \"comment\": \"This is a great media entry!\",\n    \"publicVisible\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/ratings",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"ratings"
+					]
+				},
+				"description": "Create a new rating. Requires authentication, and the authenticated user must match the user in the request body."
+			},
+			"response": []
+		},
+		{
+			"name": "6. Get Rating by ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Verify the rating data",
+							"const rating = pm.response.json();",
+							"console.log('Rating data:', JSON.stringify(rating));",
+							"console.log('Stored ratingId_rating: ' + pm.collectionVariables.get('ratingId_rating'));",
+							"console.log('Stored mediaId_rating: ' + pm.collectionVariables.get('mediaId_rating'));",
+							"console.log('Stored userId_rating: ' + pm.collectionVariables.get('userId_rating'));",
+							"",
+							"pm.test(\"Rating found and has correct data\", function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"    pm.expect(rating).to.not.be.null;",
+							"    pm.expect(rating.uuid).to.equal(pm.collectionVariables.get('ratingId_rating'));",
+							"    pm.expect(rating.mediaEntry).to.equal(pm.collectionVariables.get('mediaId_rating'));",
+							"    pm.expect(rating.user).to.equal(pm.collectionVariables.get('userId_rating'));",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/ratings/{{ratingId_rating}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"ratings",
+						"{{ratingId_rating}}"
+					]
+				},
+				"description": "Get a specific rating by its UUID. This is a public endpoint that doesn't require authentication."
+			},
+			"response": []
+		},
+		{
+			"name": "7. Get Ratings by Creator",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const ratings = pm.response.json();",
+							"console.log('Ratings by creator response:', JSON.stringify(ratings));",
+							"console.log('Looking for rating with ID: ' + pm.collectionVariables.get('ratingId_rating'));",
+							"",
+							"pm.test(\"Response contains ratings from the user\", function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"    pm.expect(ratings).to.be.an('array');",
+							"    ",
+							"    // Should have at least the rating we just created",
+							"    const found = ratings.some(rating => rating.uuid === pm.collectionVariables.get('ratingId_rating'));",
+							"    pm.expect(found).to.be.true;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/ratings?creator={{userId_rating}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"ratings"
+					],
+					"query": [
+						{
+							"key": "creator",
+							"value": "{{userId_rating}}"
+						}
+					]
+				},
+				"description": "Get all ratings by a specific creator/user. This is a public endpoint that doesn't require authentication."
+			},
+			"response": []
+		},
+		{
+			"name": "8. Get Ratings by Media",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const ratings = pm.response.json();",
+							"console.log('Ratings by media response:', JSON.stringify(ratings));",
+							"console.log('Looking for rating with ID: ' + pm.collectionVariables.get('ratingId_rating'));",
+							"",
+							"pm.test(\"Response contains ratings for the media\", function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"    pm.expect(ratings).to.be.an('array');",
+							"    ",
+							"    // Should have at least the rating we just created",
+							"    const found = ratings.some(rating => rating.uuid === pm.collectionVariables.get('ratingId_rating'));",
+							"    pm.expect(found).to.be.true;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/ratings?media={{mediaId_rating}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"ratings"
+					],
+					"query": [
+						{
+							"key": "media",
+							"value": "{{mediaId_rating}}"
+						}
+					]
+				},
+				"description": "Get all ratings for a specific media entry. This is a public endpoint that doesn't require authentication."
+			},
+			"response": []
+		},
+		{
+			"name": "9. Update Rating",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"console.log('Rating update response:', JSON.stringify(pm.response.json()));",
+							"",
+							"pm.test(\"Rating updated successfully\", function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log('Pre-request for update: ratingId_rating = ' + pm.collectionVariables.get('ratingId_rating'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{userToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"uuid\": \"{{ratingId_rating}}\",\n    \"stars\": 3,\n    \"comment\": \"I've updated my opinion after further consideration.\",\n    \"publicVisible\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/ratings/{{ratingId_rating}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"ratings",
+						"{{ratingId_rating}}"
+					]
+				},
+				"description": "Update an existing rating. Requires authentication, and the authenticated user must own the rating."
+			},
+			"response": []
+		},
+		{
+			"name": "10. Get Rating to Verify Update",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const rating = pm.response.json();",
+							"console.log('Updated rating:', JSON.stringify(rating));",
+							"",
+							"pm.test(\"Rating updated correctly\", function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"    pm.expect(rating.stars).to.equal(3);",
+							"    pm.expect(rating.comment).to.equal(\"I've updated my opinion after further consideration.\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/ratings/{{ratingId_rating}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"ratings",
+						"{{ratingId_rating}}"
+					]
+				},
+				"description": "Get the updated rating to verify changes"
+			},
+			"response": []
+		},
+		{
+			"name": "11. Like Rating",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"console.log('Like rating response:', JSON.stringify(pm.response.json()));",
+							"",
+							"pm.test(\"Rating liked successfully\", function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{userToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/ratings/{{ratingId_rating}}/like",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"ratings",
+						"{{ratingId_rating}}",
+						"like"
+					]
+				},
+				"description": "Like a rating. Requires authentication."
+			},
+			"response": []
+		},
+		{
+			"name": "12. Rate Media (Shorthand)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"console.log('Shorthand rating response:', JSON.stringify(pm.response.json()));",
+							"",
+							"pm.test(\"Shorthand rating created successfully\", function () {",
+							"    pm.expect(pm.response.code).to.equal(201);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log('Pre-request for shorthand rating: mediaId_rating = ' + pm.collectionVariables.get('mediaId_rating'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{userToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"stars\": 5,\n    \"comment\": \"This is an excellent media entry!\",\n    \"publicVisible\": true,\n    \"title\": \"Rating Title\",\n    \"createdBy\": \"{{userId_rating}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/media/{{mediaId_rating}}/rate",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"media",
+						"{{mediaId_rating}}",
+						"rate"
+					]
+				},
+				"description": "Create a rating using the shorthand endpoint. Requires authentication, and the user ID is extracted from the authentication token."
+			},
+			"response": []
+		},
+		{
+			"name": "13. Delete Rating",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Rating deleted successfully\", function () {",
+							"    pm.expect(pm.response.code).to.equal(204);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log('Pre-request for delete: ratingId_rating = ' + pm.collectionVariables.get('ratingId_rating'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{userToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/ratings/{{ratingId_rating}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"ratings",
+						"{{ratingId_rating}}"
+					]
+				},
+				"description": "Delete an existing rating. Requires authentication, and the authenticated user must own the rating."
+			},
+			"response": []
+		},
+		{
+			"name": "Cleanup - Delete Test Media",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Media deleted successfully or not found\", function () {",
+							"    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log('Pre-request for cleanup: mediaId_rating = ' + pm.collectionVariables.get('mediaId_rating'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{userToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/media/{{mediaId_rating}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"media",
+						"{{mediaId_rating}}"
+					]
+				},
+				"description": "Clean up by deleting the test media entry"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global pre-request script",
+					"console.log(\"Running test request: \" + pm.info.requestName);"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test script",
+					"console.log(\"Test completed for: \" + pm.info.requestName);",
+					"console.log(\"Status code: \" + pm.response.code);"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "userToken",
+			"value": "your-auth-token-here",
+			"type": "string",
+			"description": "Authentication token for the user"
+		},
+		{
+			"key": "userId_rating",
+			"value": "00000000-0000-0000-0000-000000000000",
+			"type": "string",
+			"description": "UUID of the user making the requests"
+		},
+		{
+			"key": "mediaId_rating",
+			"value": "00000000-0000-0000-0000-000000000000",
+			"type": "string",
+			"description": "UUID of the media entry being rated"
+		},
+		{
+			"key": "ratingId_rating",
+			"value": "00000000-0000-0000-0000-000000000000",
+			"type": "string",
+			"description": "UUID of the rating being manipulated"
+		}
+	]
+}

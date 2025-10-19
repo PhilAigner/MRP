@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "MRP User API",
+    "name": "1 MRP User API",
     "description": "Complete Postman collection for User HTTP Endpoints (Register, Login, Profile) with comprehensive tests",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "12345"
