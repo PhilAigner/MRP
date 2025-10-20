@@ -27,7 +27,7 @@ namespace MRP
         private readonly MediaRepository _mediaRepository;
         private readonly ProfileRepository _profileRepository;
         private readonly TokenService _tokenService;
-        private readonly MediaService _mediaService;
+        private readonly RatingService _ratingService;
 
         public RatingsHTTPEndpoint(RatingRepository ratingRepository, UserRepository userRepository, MediaRepository mediaRepository, ProfileRepository profileRepository, TokenService tokenService)
         {
@@ -36,7 +36,7 @@ namespace MRP
             _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
             _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
             _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
-            _mediaService = new MediaService(_mediaRepository, _ratingRepository, _profileRepository);
+            _ratingService = new RatingService(_ratingRepository, _profileRepository, _mediaRepository);
         }
 
         public bool CanHandle(HttpListenerRequest request)
@@ -114,15 +114,15 @@ namespace MRP
                             return;
                         }
 
-                        // Use MediaService to track statistics
+                        // Use RatingService to track statistics
                         bool success;
                         if (!string.IsNullOrWhiteSpace(dto.comment))
                         {
-                            success = _mediaService.rateMediaEntryWithComment(mediaId, userGuid, dto.stars.Value, dto.comment);
+                            success = _ratingService.rateMediaEntryWithComment(mediaId, userGuid, dto.stars.Value, dto.comment);
                         }
                         else
                         {
-                            success = _mediaService.rateMediaEntry(mediaId, userGuid, dto.stars.Value);
+                            success = _ratingService.rateMediaEntry(mediaId, userGuid, dto.stars.Value);
                         }
 
                         if (!success)
@@ -169,7 +169,7 @@ namespace MRP
                     return;
                 }
 
-                var success = _mediaService.likeRating(ratingIdFromPath.Value, authenticatedUserId);
+                var success = _ratingService.likeRating(ratingIdFromPath.Value, authenticatedUserId);
                 
                 if (!success)
                 {
@@ -197,7 +197,7 @@ namespace MRP
                     return;
                 }
 
-                var success = _mediaService.removeLikeFromRating(ratingIdFromPath.Value, authenticatedUserId);
+                var success = _ratingService.removeLikeFromRating(ratingIdFromPath.Value, authenticatedUserId);
                 
                 if (!success)
                 {
@@ -225,7 +225,7 @@ namespace MRP
                     return;
                 }
 
-                var success = _mediaService.approveRating(ratingIdFromPath.Value, authenticatedUserId);
+                var success = _ratingService.approveRating(ratingIdFromPath.Value, authenticatedUserId);
                 
                 if (!success)
                 {
@@ -349,11 +349,11 @@ namespace MRP
                     bool success;
                     if (!string.IsNullOrWhiteSpace(dto.comment))
                     {
-                        success = _mediaService.rateMediaEntryWithComment(mediaGuid, userGuid, dto.stars.Value, dto.comment);
+                        success = _ratingService.rateMediaEntryWithComment(mediaGuid, userGuid, dto.stars.Value, dto.comment);
                     }
                     else
                     {
-                        success = _mediaService.rateMediaEntry(mediaGuid, userGuid, dto.stars.Value);
+                        success = _ratingService.rateMediaEntry(mediaGuid, userGuid, dto.stars.Value);
                     }
 
                     if (!success)
