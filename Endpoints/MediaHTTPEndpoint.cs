@@ -1,18 +1,18 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
 namespace MRP
 {
     // DTO for creating/updating media
     public class MediaDto
     {
-        // Accept string GUIDs from JSON and parse them explicitly
         public string? uuid { get; set; }
         public string? title { get; set; }
         public string? description { get; set; }
@@ -25,8 +25,6 @@ namespace MRP
 
     public sealed class MediaHTTPEndpoint : IHttpEndpoint
     {
-        private readonly List<string> paths = new List<string> { "/api/media" };
-
         private readonly MediaRepository _mediaRepository;
         private readonly UserRepository _userRepository;
         private readonly RatingRepository _ratingRepository;
@@ -48,8 +46,7 @@ namespace MRP
         {
             var path = request.Url!.AbsolutePath.TrimEnd('/').ToLowerInvariant();
 
-            // First check for paths that should NOT be handled by this endpoint
-            // More precise check using path segments
+            // First check for paths that should NOT be handled by this endpoint | if /rate is at the end, it's for RatingsHTTPEndpoint
             var pathSegments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
             if (pathSegments.Length >= 4 && 
                 string.Equals(pathSegments[0], "api", StringComparison.OrdinalIgnoreCase) && 
@@ -60,7 +57,7 @@ namespace MRP
                 return false;
             }
 
-            // Then check for paths this endpoint SHOULD handle
+            // Then check for paths this endpoint can handle
             if (path.StartsWith("/api/media"))
             {
                 return true;
@@ -85,11 +82,10 @@ namespace MRP
                 }
             }
 
+            // GET doesn't require authentication | public endpoint
             if (req.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
-                // GET doesn't require authentication - public endpoint for browsing
-                
-                // Special case: Get single media by ID from path or query
+                //get media ID from path or query
                 Guid? mediaId = mediaIdFromPath;
                 if (!mediaId.HasValue)
                 {
@@ -102,93 +98,19 @@ namespace MRP
 
                 if (mediaId.HasValue)
                 {
-                    var ent = _mediaRepository.GetMediaById(mediaId.Value);
-                    if (ent == null) { await HttpServer.Json(context.Response, 404, new { error = "Media not found" }); return; }
-                    await HttpServer.Json(context.Response, 200, ent);
+                    var mediaEntryRes = _mediaRepository.GetMediaById(mediaId.Value);
+                    if (mediaEntryRes == null) { await HttpServer.Json(context.Response, 404, new { error = "Media not found" }); return; }
+                    await HttpServer.Json(context.Response, 200, mediaEntryRes);
                     return;
                 }
 
                 // Start with all media entries
                 IEnumerable<MediaEntry> query = _mediaRepository.GetAll();
 
-                // Apply filters progressively (combinable)
-                
-                // Filter by creator
-                var creatorq = req.QueryString["creator"];
-                if (!string.IsNullOrWhiteSpace(creatorq) && Guid.TryParse(creatorq, out var creatorId))
-                {
-                    query = query.Where(m => m.createdBy.uuid == creatorId);
-                }
+                //TODO:
+                //LATER ON THIS IS HANDELED BY SQL QUERIES INSTEAD OF IN-MEMORY FILTERING
+                query = ApplyFilter(req, query);
 
-                // Filter by exact title
-                var titleq = req.QueryString["title"];
-                if (!string.IsNullOrWhiteSpace(titleq))
-                {
-                    query = query.Where(m => m.title.Equals(titleq, StringComparison.OrdinalIgnoreCase));
-                }
-
-                // Filter by title contains
-                var titleContainsq = req.QueryString["titleContains"];
-                if (!string.IsNullOrWhiteSpace(titleContainsq))
-                {
-                    query = query.Where(m => m.title.Contains(titleContainsq, StringComparison.OrdinalIgnoreCase));
-                }
-
-                // Filter by genre
-                var genreq = req.QueryString["genre"];
-                if (!string.IsNullOrWhiteSpace(genreq))
-                {
-                    query = query.Where(m => m.genre.Contains(genreq, StringComparison.OrdinalIgnoreCase));
-                }
-
-                // Filter by media type
-                var mediaTypeq = req.QueryString["mediaType"];
-                if (!string.IsNullOrWhiteSpace(mediaTypeq) && Enum.TryParse<EMediaType>(mediaTypeq, true, out var mediaType))
-                {
-                    query = query.Where(m => m.mediaType == mediaType);
-                }
-
-                // Filter by exact release year
-                var releaseYearq = req.QueryString["releaseYear"];
-                if (!string.IsNullOrWhiteSpace(releaseYearq) && int.TryParse(releaseYearq, out var releaseYear))
-                {
-                    query = query.Where(m => m.releaseYear == releaseYear);
-                }
-
-                // Filter by minimum release year
-                var minYearq = req.QueryString["minYear"];
-                if (!string.IsNullOrWhiteSpace(minYearq) && int.TryParse(minYearq, out var minYear))
-                {
-                    query = query.Where(m => m.releaseYear >= minYear);
-                }
-
-                // Filter by maximum release year
-                var maxYearq = req.QueryString["maxYear"];
-                if (!string.IsNullOrWhiteSpace(maxYearq) && int.TryParse(maxYearq, out var maxYear))
-                {
-                    query = query.Where(m => m.releaseYear <= maxYear);
-                }
-
-                // Filter by age restriction
-                var ageRestrictionq = req.QueryString["ageRestriction"];
-                if (!string.IsNullOrWhiteSpace(ageRestrictionq) && Enum.TryParse<EFSK>(ageRestrictionq, true, out var ageRestriction))
-                {
-                    query = query.Where(m => m.ageRestriction == ageRestriction);
-                }
-
-                // Filter by minimum average rating
-                var minRatingq = req.QueryString["minRating"];
-                if (!string.IsNullOrWhiteSpace(minRatingq) && float.TryParse(minRatingq, out var minRating))
-                {
-                    query = query.Where(m => m.averageScore >= minRating);
-                }
-
-                // Filter by maximum average rating
-                var maxRatingq = req.QueryString["maxRating"];
-                if (!string.IsNullOrWhiteSpace(maxRatingq) && float.TryParse(maxRatingq, out var maxRating))
-                {
-                    query = query.Where(m => m.averageScore <= maxRating);
-                }
 
                 // Convert to list and apply sorting
                 var resultList = query.ToList();
@@ -198,6 +120,7 @@ namespace MRP
                 return;
             }
 
+            // USER NEEDS to be logged in to create media
             if (req.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase))
             {
                 // Check authentication for creating media
@@ -225,7 +148,7 @@ namespace MRP
                         return;
                     }
 
-                    // Verify that the authenticated user is the creator
+                    // Verify that the authenticated user is the creator of the media
                     if (createdByGuid != authenticatedUserId)
                     {
                         await AuthenticationHelper.SendForbiddenResponse(context.Response);
@@ -259,7 +182,7 @@ namespace MRP
 
             if (req.HttpMethod.Equals("PUT", StringComparison.OrdinalIgnoreCase))
             {
-                // Check authentication for updating media
+                // Check authentication for updating media ( user must be logged in in first place )
                 if (!AuthenticationHelper.RequireAuthentication(req, context.Response, _tokenService, out var authenticatedUserId))
                 {
                     await AuthenticationHelper.SendUnauthorizedResponse(context.Response);
@@ -309,7 +232,9 @@ namespace MRP
                         if (!string.IsNullOrWhiteSpace(dto.ageRestriction) && Enum.TryParse<EFSK>(dto.ageRestriction, true, out var fsk)) existing.ageRestriction = fsk;
                     }
 
-                    // repository is in-memory list; replace item to persist change if necessary
+                    //TODO SQL REQUEST TO UPDATE MEDIA ENTRY IN DATABASE
+                    // mthod in media repo todo
+                    //update repository
                     var list = _mediaRepository.GetAll();
                     list.RemoveAll(m => m.uuid == existing.uuid);
                     list.Add(existing);
@@ -365,13 +290,99 @@ namespace MRP
 
                 _mediaService.deleteMediaEntry(id);
 
-                await HttpServer.Json(context.Response, 204, null);  // 204 No Content as per OpenAPI spec
+                await HttpServer.Json(context.Response, 204, null);
                 return;
             }
 
             await HttpServer.Json(context.Response, 405, new { error = "Method Not Allowed" });
         }
 
+
+        // TEMP IN MEMORY FILTERING
+        private IEnumerable<MediaEntry> ApplyFilter(HttpListenerRequest req, IEnumerable<MediaEntry> query)
+        {
+            // Filter by creator
+            var creatorq = req.QueryString["creator"];
+            if (!string.IsNullOrWhiteSpace(creatorq) && Guid.TryParse(creatorq, out var creatorId))
+            {
+                query = query.Where(m => m.createdBy.uuid == creatorId);
+            }
+
+            // Filter by exact title
+            var titleq = req.QueryString["title"];
+            if (!string.IsNullOrWhiteSpace(titleq))
+            {
+                query = query.Where(m => m.title.Equals(titleq, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Filter by title contains
+            var titleContainsq = req.QueryString["titleContains"];
+            if (!string.IsNullOrWhiteSpace(titleContainsq))
+            {
+                query = query.Where(m => m.title.Contains(titleContainsq, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Filter by genre
+            var genreq = req.QueryString["genre"];
+            if (!string.IsNullOrWhiteSpace(genreq))
+            {
+                query = query.Where(m => m.genre.Contains(genreq, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Filter by media type
+            var mediaTypeq = req.QueryString["mediaType"];
+            if (!string.IsNullOrWhiteSpace(mediaTypeq) && Enum.TryParse<EMediaType>(mediaTypeq, true, out var mediaType))
+            {
+                query = query.Where(m => m.mediaType == mediaType);
+            }
+
+            // Filter by exact release year
+            var releaseYearq = req.QueryString["releaseYear"];
+            if (!string.IsNullOrWhiteSpace(releaseYearq) && int.TryParse(releaseYearq, out var releaseYear))
+            {
+                query = query.Where(m => m.releaseYear == releaseYear);
+            }
+
+            // Filter by minimum release year
+            var minYearq = req.QueryString["minYear"];
+            if (!string.IsNullOrWhiteSpace(minYearq) && int.TryParse(minYearq, out var minYear))
+            {
+                query = query.Where(m => m.releaseYear >= minYear);
+            }
+
+            // Filter by maximum release year
+            var maxYearq = req.QueryString["maxYear"];
+            if (!string.IsNullOrWhiteSpace(maxYearq) && int.TryParse(maxYearq, out var maxYear))
+            {
+                query = query.Where(m => m.releaseYear <= maxYear);
+            }
+
+            // Filter by age restriction
+            var ageRestrictionq = req.QueryString["ageRestriction"];
+            if (!string.IsNullOrWhiteSpace(ageRestrictionq) && Enum.TryParse<EFSK>(ageRestrictionq, true, out var ageRestriction))
+            {
+                query = query.Where(m => m.ageRestriction == ageRestriction);
+            }
+
+            // Filter by minimum average rating
+            var minRatingq = req.QueryString["minRating"];
+            if (!string.IsNullOrWhiteSpace(minRatingq) && float.TryParse(minRatingq, out var minRating))
+            {
+                query = query.Where(m => m.averageScore >= minRating);
+            }
+
+            // Filter by maximum average rating
+            var maxRatingq = req.QueryString["maxRating"];
+            if (!string.IsNullOrWhiteSpace(maxRatingq) && float.TryParse(maxRatingq, out var maxRating))
+            {
+                query = query.Where(m => m.averageScore <= maxRating);
+            }
+
+            return query;
+        }
+
+
+        // TEMP IN MEMORY SORTING
         private List<MediaEntry> ApplySorting(List<MediaEntry> mediaList, string? sortBy, string? sortOrder)
         {
             if (string.IsNullOrWhiteSpace(sortBy))
