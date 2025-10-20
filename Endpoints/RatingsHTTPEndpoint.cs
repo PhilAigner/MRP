@@ -47,7 +47,7 @@ namespace MRP
             if (path.StartsWith("/api/ratings"))
                 return true;
             
-            // Handle specific /api/media/{mediaId}/rate endpoint
+            // Handle /api/media/{mediaId}/rate endpoint
             if (path.Contains("/media/") && path.EndsWith("/rate"))
                 return true;
                 
@@ -237,8 +237,6 @@ namespace MRP
                 return;
             }
 
-            // GET: /api/ratings?id=GUID | ?creator=GUID | ?media=GUID | ?minStars=N | ?maxStars=N
-            // Or /api/ratings/{ratingId}
             // Public endpoint - no authentication required
             if (req.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
@@ -347,7 +345,7 @@ namespace MRP
                         return;
                     }
 
-                    // Use MediaService to track statistics
+                    // track statistics
                     bool success;
                     if (!string.IsNullOrWhiteSpace(dto.comment))
                     {
@@ -528,11 +526,9 @@ namespace MRP
                 }
 
                 _ratingRepository.GetAll().RemoveAll(r => r.uuid == id);
-                await HttpServer.Json(context.Response, 204, null);  // 204 No Content as per OpenAPI spec
+                await HttpServer.Json(context.Response, 204, null);
                 return;
             }
-
- 
 
             await HttpServer.Json(context.Response, 405, new { error = "Method Not Allowed" });
         }

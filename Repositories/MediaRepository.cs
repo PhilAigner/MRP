@@ -1,7 +1,4 @@
-﻿using System;
-using System.Runtime;
-
-namespace MRP;
+﻿namespace MRP;
 
 public class MediaRepository :  IMediaRepository {
 

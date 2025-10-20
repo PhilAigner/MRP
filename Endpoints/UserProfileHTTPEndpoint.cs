@@ -8,19 +8,13 @@ using System.Threading.Tasks;
 
 namespace MRP
 {
-    // DTO für Profile-Transfer
+    // DTO für Profile - only fields that can be set from outside
     public class ProfileDto
     {
-        public Guid user { get; set; }
-        public int? numberOfLogins { get; set; }
-        public int? numberOfRatingsGiven { get; set; }
-        public int? numberOfMediaAdded { get; set; }
-        public int? numberOfReviewsWritten { get; set; }
-        public string? favoriteGenre { get; set; }
-        public string? favoriteMediaType { get; set; }
         public string? sobriquet { get; set; }
         public string? aboutMe { get; set; }
     }
+
 
     public sealed class UserProfileHTTPEndpoint : IHttpEndpoint
     {
@@ -80,7 +74,6 @@ namespace MRP
                     return;
                 }
 
-                // Get userId from path or query parameter (for backwards compatibility)
                 Guid userId;
                 if (userIdFromPath.HasValue)
                 {
@@ -120,7 +113,7 @@ namespace MRP
                 return;
             }
 
-            // PUT: Update profile - requires authentication and ownership
+            // PUT: Update profile | NEEDS to be logged in and ownership - only sobriquet and aboutMe can be updated
             if (req.HttpMethod.Equals("PUT", StringComparison.OrdinalIgnoreCase))
             {
                 // Check authentication
@@ -136,19 +129,15 @@ namespace MRP
                     var json = await reader.ReadToEndAsync();
                     var dto = JsonSerializer.Deserialize<ProfileDto>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                    // Get userId from path or body
+                    // Get userId from path
                     Guid userId;
                     if (userIdFromPath.HasValue)
                     {
                         userId = userIdFromPath.Value;
                     }
-                    else if (dto != null && dto.user != Guid.Empty)
-                    {
-                        userId = dto.user;
-                    }
                     else
                     {
-                        await HttpServer.Json(context.Response, 400, new { error = "Invalid profile data. 'user' required in path or body." });
+                        await HttpServer.Json(context.Response, 400, new { error = "User ID must be specified in path" });
                         return;
                     }
 
@@ -160,7 +149,7 @@ namespace MRP
                         return;
                     }
 
-                    // Get existing profile BEFORE checking ownership
+                    // Get if profile exists
                     var existingProfile = _userService.getProfile(userId);
                     if (existingProfile == null)
                     {
@@ -168,7 +157,7 @@ namespace MRP
                         return;
                     }
 
-                    // NOW check if user is updating their own profile (after we know it exists)
+                    // check if user is updating their own profile
                     if (userId != authenticatedUserId)
                     {
                         await AuthenticationHelper.SendForbiddenResponse(context.Response);
@@ -177,13 +166,7 @@ namespace MRP
 
                     if (dto != null)
                     {
-                        // Update only provided fields
-                        if (dto.numberOfLogins.HasValue) existingProfile.numberOfLogins = dto.numberOfLogins.Value;
-                        if (dto.numberOfRatingsGiven.HasValue) existingProfile.numberOfRatingsGiven = dto.numberOfRatingsGiven.Value;
-                        if (dto.numberOfMediaAdded.HasValue) existingProfile.numberOfMediaAdded = dto.numberOfMediaAdded.Value;
-                        if (dto.numberOfReviewsWritten.HasValue) existingProfile.numberOfReviewsWritten = dto.numberOfReviewsWritten.Value;
-                        if (dto.favoriteGenre != null) existingProfile.favoriteGenre = dto.favoriteGenre;
-                        if (dto.favoriteMediaType != null) existingProfile.favoriteMediaType = dto.favoriteMediaType;
+                        // Update only sobriquet and aboutMe
                         if (dto.sobriquet != null) existingProfile.sobriquet = dto.sobriquet;
                         if (dto.aboutMe != null) existingProfile.aboutMe = dto.aboutMe;
                     }
@@ -260,4 +243,3 @@ namespace MRP
         }
     }
 }
-                

@@ -251,22 +251,6 @@ namespace MRP
             return true;
         }
 
-        public bool validateRating(Guid ratingId, Guid userId)
-        {
-            var existingRating = ratings.GetById(ratingId);
-            if (existingRating == null) return false;
-            if (existingRating.user != userId) return false;                //user is not the creator of this rating
-            existingRating.publicVisible = true;
-            return true;
-        }
-
-        /// <summary>
-        /// Approves a rating and makes it publicly visible. Only the media entry owner can approve ratings.
-        /// Once approved, the rating is added to the media entry's ratings list.
-        /// </summary>
-        /// <param name="ratingId">The ID of the rating to approve</param>
-        /// <param name="approverId">The ID of the user approving (must be media entry owner)</param>
-        /// <returns>True if approval was successful, false otherwise</returns>
         public bool approveRating(Guid ratingId, Guid approverId)
         {
             var existingRating = ratings.GetById(ratingId);
@@ -280,8 +264,9 @@ namespace MRP
             
             // Make the rating publicly visible
             existingRating.publicVisible = true;
-            
+
             // Add rating to media entry's ratings list if not already present
+            // ( so that it can be shown directly in the media entry details )
             if (!mediaEntry.ratings.Any(r => r.uuid == ratingId))
             {
                 mediaEntry.ratings.Add(existingRating);

@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace MRP
 {
-    // DTO-Klasse für Registrierungsdaten (entspricht der User-JSON-Struktur insofern, als Username/Password erwartet werden)
     public class RegisterRequest
     {
         public string? username { get; set; }

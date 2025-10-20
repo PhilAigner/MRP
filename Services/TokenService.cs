@@ -9,8 +9,6 @@ namespace MRP
     public sealed class TokenService
     {
         private static readonly ConcurrentDictionary<string, Guid> _tokens = new ConcurrentDictionary<string, Guid>();
-        private static readonly object _lock = new object();
-
 
         public string GenerateToken(string username, Guid userId)
         {
@@ -20,19 +18,13 @@ namespace MRP
             // Check if user already has a token
             var existingToken = _tokens.FirstOrDefault(kvp => kvp.Value == userId).Key;
             if (existingToken != null)
-            {
-                // Return existing token
                 return existingToken;
-            }
 
             // Generate new token
             string token = $"{username}-{Guid.NewGuid()}-{Guid.NewGuid()}-token";
             
-            lock (_lock)
-            {
-                _tokens[token] = userId;
-            }
-
+            _tokens[token] = userId;
+            
             return token;
         }
 

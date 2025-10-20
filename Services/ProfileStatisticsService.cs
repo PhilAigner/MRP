@@ -12,14 +12,11 @@ namespace MRP
 
         public ProfileStatisticsService(ProfileRepository profileRepository, RatingRepository ratingRepository, MediaRepository mediaRepository)
         {
-            _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
-            _ratingRepository = ratingRepository ?? throw new ArgumentNullException(nameof(ratingRepository));
-            _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
+            _profileRepository = profileRepository;
+            _ratingRepository = ratingRepository;
+            _mediaRepository = mediaRepository;
         }
 
-        /// <summary>
-        /// Updates the favorite genre and media type based on user's ratings
-        /// </summary>
         public void UpdateFavorites(Guid userId)
         {
             var profile = _profileRepository.GetByOwnerId(userId);
@@ -62,9 +59,6 @@ namespace MRP
             }
         }
 
-        /// <summary>
-        /// Recalculates all statistics for a user profile
-        /// </summary>
         public void RecalculateStatistics(Guid userId)
         {
             var profile = _profileRepository.GetByOwnerId(userId);

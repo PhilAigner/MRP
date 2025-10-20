@@ -153,7 +153,6 @@ namespace MRP
             response.Headers.Add("Access-Control-Max-Age", "3600");
         }
 
-        #region Helpers (response)
         public static async Task Json(HttpListenerResponse resp, int status, object payload)
         {
             var options = new JsonSerializerOptions 
@@ -196,7 +195,6 @@ namespace MRP
             await resp.OutputStream.WriteAsync(bytes, 0, bytes.Length);
             resp.Close();
         }
-        #endregion
 
         public void Dispose()
         {
