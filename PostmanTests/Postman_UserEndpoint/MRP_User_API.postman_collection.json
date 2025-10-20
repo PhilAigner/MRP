@@ -1,1492 +1,1501 @@
 {
-  "info": {
-    "name": "1 MRP User API",
-    "description": "Complete Postman collection for User HTTP Endpoints (Register, Login, Profile) with comprehensive tests",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "12345"
-  },
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{authToken}}",
-        "type": "string"
-      }
-    ]
-  },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080",
-      "type": "string"
-    },
-    {
-      "key": "authToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "testUserId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "testUsername",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "testPassword",
-      "value": "Test123!",
-      "type": "string"
-    },
-    {
-      "key": "secondUserId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "secondUsername",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "secondUserToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "profileUuid",
-      "value": "",
-      "type": "string"
-    }
-  ],
-  "item": [
-    {
-      "name": "User Registration",
-      "item": [
-        {
-          "name": "Register User - Success",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "// Generate unique username for this test run",
-                  "const timestamp = Date.now();",
-                  "const randomNum = Math.floor(Math.random() * 10000);",
-                  "const username = `testuser_${timestamp}_${randomNum}`;",
-                  "pm.collectionVariables.set('testUsername', username);"
-                ],
-                "type": "text/javascript"
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 201\", function () {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "pm.test(\"Response has user object with uuid\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('user');",
-                  "    pm.expect(jsonData.user).to.have.property('uuid');",
-                  "    pm.collectionVariables.set('testUserId', jsonData.user.uuid);",
-                  "});",
-                  "",
-                  "pm.test(\"Response has success message\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('message');",
-                  "    pm.expect(jsonData.message).to.include('registered successfully');",
-                  "});",
-                  "",
-                  "pm.test(\"User object contains required fields\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.user).to.have.property('username');",
-                  "    pm.expect(jsonData.user).to.have.property('created');",
-                  "    pm.expect(jsonData.user).to.have.property('profileUuid');",
-                  "    pm.collectionVariables.set('profileUuid', jsonData.user.profileUuid);",
-                  "});",
-                  "",
-                  "pm.test(\"UUID is valid GUID format\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    var guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
-                  "    pm.expect(jsonData.user.uuid).to.match(guidRegex);",
-                  "});",
-                  "",
-                  "pm.test(\"Response time is less than 500ms\", function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "register"
-              ]
-            },
-            "description": "Register a new user successfully"
-          },
-          "response": []
-        },
-        {
-          "name": "Register User - Missing Username",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 400\", function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});",
-                  "",
-                  "pm.test(\"Error message indicates missing fields\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "    pm.expect(jsonData.error).to.include('username');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"password\": \"{{testPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "register"
-              ]
-            },
-            "description": "Attempt to register without username"
-          },
-          "response": []
-        },
-        {
-          "name": "Register User - Missing Password",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 400\", function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});",
-                  "",
-                  "pm.test(\"Error message indicates missing fields\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "    pm.expect(jsonData.error).to.include('password');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"test_no_password\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "register"
-              ]
-            },
-            "description": "Attempt to register without password"
-          },
-          "response": []
-        },
-        {
-          "name": "Register User - Duplicate Username",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 409\", function () {",
-                  "    pm.response.to.have.status(409);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates username already exists\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "    pm.expect(jsonData.error).to.include('failed');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "register"
-              ]
-            },
-            "description": "Attempt to register with existing username"
-          },
-          "response": []
-        },
-        {
-          "name": "Register User - Invalid JSON",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 400\", function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates invalid JSON\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "    pm.expect(jsonData.error).to.include('JSON');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{invalid json"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "register"
-              ]
-            },
-            "description": "Attempt to register with invalid JSON"
-          },
-          "response": []
-        }
-      ],
-      "description": "Tests for user registration endpoint"
-    },
-    {
-      "name": "User Login",
-      "item": [
-        {
-          "name": "Login User - Success",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response has token\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('token');",
-                  "    pm.collectionVariables.set('authToken', jsonData.token);",
-                  "});",
-                  "",
-                  "pm.test(\"Token is not empty\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.token).to.not.be.empty;",
-                  "});",
-                  "",
-                  "pm.test(\"Response has success message\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('message');",
-                  "    pm.expect(jsonData.message).to.include('successful');",
-                  "});",
-                  "",
-                  "pm.test(\"Response includes username\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('username');",
-                  "    pm.expect(jsonData.username).to.equal(pm.collectionVariables.get('testUsername'));",
-                  "});",
-                  "",
-                  "pm.test(\"Response time is less than 500ms\", function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "login"
-              ]
-            },
-            "description": "Login with valid credentials"
-          },
-          "response": []
-        },
-        {
-          "name": "Login User - Invalid Password",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 401\", function () {",
-                  "    pm.response.to.have.status(401);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates invalid credentials\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "    pm.expect(jsonData.error).to.include('Invalid');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"WrongPassword123!\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "login"
-              ]
-            },
-            "description": "Attempt to login with wrong password"
-          },
-          "response": []
-        },
-        {
-          "name": "Login User - Invalid Username",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 401\", function () {",
-                  "    pm.response.to.have.status(401);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates invalid credentials\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"nonexistent_user_999\",\n  \"password\": \"{{testPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "login"
-              ]
-            },
-            "description": "Attempt to login with non-existent user"
-          },
-          "response": []
-        },
-        {
-          "name": "Login User - Missing Username",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 400\", function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates missing fields\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"password\": \"{{testPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "login"
-              ]
-            },
-            "description": "Attempt to login without username"
-          },
-          "response": []
-        },
-        {
-          "name": "Login User - Missing Password",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 400\", function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates missing fields\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"{{testUsername}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "login"
-              ]
-            },
-            "description": "Attempt to login without password"
-          },
-          "response": []
-        },
-        {
-          "name": "Login User - Invalid JSON",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 400\", function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates invalid JSON\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "    pm.expect(jsonData.error).to.include('JSON');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{invalid json structure"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "login"
-              ]
-            },
-            "description": "Attempt to login with invalid JSON"
-          },
-          "response": []
-        }
-      ],
-      "description": "Tests for user login endpoint"
-    },
-    {
-      "name": "User Profile",
-      "item": [
-        {
-          "name": "Get Profile - Success (Query Parameter)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response contains profile details\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('uuid');",
-                  "    pm.expect(jsonData).to.have.property('user');",
-                  "    pm.expect(jsonData).to.have.property('numberOfLogins');",
-                  "    pm.expect(jsonData).to.have.property('numberOfRatingsGiven');",
-                  "    pm.expect(jsonData).to.have.property('numberOfMediaAdded');",
-                  "    pm.expect(jsonData).to.have.property('numberOfReviewsWritten');",
-                  "    pm.expect(jsonData).to.have.property('favoriteGenre');",
-                  "    pm.expect(jsonData).to.have.property('favoriteMediaType');",
-                  "    pm.expect(jsonData).to.have.property('sobriquet');",
-                  "    pm.expect(jsonData).to.have.property('aboutMe');",
-                  "});",
-                  "",
-                  "pm.test(\"Profile user ID matches\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.user).to.equal(pm.collectionVariables.get('testUserId'));",
-                  "});",
-                  "",
-                  "pm.test(\"Login count increased\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.numberOfLogins).to.be.at.least(1);",
-                  "});",
-                  "",
-                  "pm.test(\"Response time is less than 500ms\", function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/profile?userid={{testUserId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "profile"
-              ],
-              "query": [
-                {
-                  "key": "userid",
-                  "value": "{{testUserId}}"
-                }
-              ]
-            },
-            "description": "Get user profile using query parameter (legacy format)"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Profile - Success (Path Parameter)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response contains profile details\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('uuid');",
-                  "    pm.expect(jsonData).to.have.property('user');",
-                  "});",
-                  "",
-                  "pm.test(\"Profile user ID matches\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.user).to.equal(pm.collectionVariables.get('testUserId'));",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "{{testUserId}}",
-                "profile"
-              ]
-            },
-            "description": "Get user profile using RESTful path parameter"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Profile - Unauthorized (No Token)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 401\", function () {",
-                  "    pm.response.to.have.status(401);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates unauthorized\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/profile?userid={{testUserId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "profile"
-              ],
-              "query": [
-                {
-                  "key": "userid",
-                  "value": "{{testUserId}}"
-                }
-              ]
-            },
-            "description": "Attempt to get profile without authentication"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Profile - Not Found",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 404\", function () {",
-                  "    pm.response.to.have.status(404);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates profile not found\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "    pm.expect(jsonData.error).to.include('not found');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/profile?userid=00000000-0000-0000-0000-000000000999",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "profile"
-              ],
-              "query": [
-                {
-                  "key": "userid",
-                  "value": "00000000-0000-0000-0000-000000000999"
-                }
-              ]
-            },
-            "description": "Attempt to get non-existent profile"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Profile - Invalid User ID",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 400\", function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates invalid userid\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/profile?userid=invalid-guid",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "profile"
-              ],
-              "query": [
-                {
-                  "key": "userid",
-                  "value": "invalid-guid"
-                }
-              ]
-            },
-            "description": "Attempt to get profile with invalid GUID"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Profile - Success (Sobriquet and AboutMe)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response has success message\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('message');",
-                  "    pm.expect(jsonData.message).to.include('updated');",
-                  "});",
-                  "",
-                  "pm.test(\"Response time is less than 500ms\", function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user\": \"{{testUserId}}\",\n  \"sobriquet\": \"MovieLover2024\",\n  \"aboutMe\": \"I love watching sci-fi movies and TV series!\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "profile"
-              ]
-            },
-            "description": "Update user profile with sobriquet and aboutMe"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Profile - Success (Path Parameter)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response has success message\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('message');",
-                  "    pm.expect(jsonData.message).to.include('updated');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"sobriquet\": \"TheMovieCritic\",\n  \"aboutMe\": \"Passionate about cinema and rating great content!\",\n  \"favoriteGenre\": \"Science Fiction\",\n  \"favoriteMediaType\": \"Movie\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "{{testUserId}}",
-                "profile"
-              ]
-            },
-            "description": "Update user profile using RESTful path parameter"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Profile - Unauthorized (No Token)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 401\", function () {",
-                  "    pm.response.to.have.status(401);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates unauthorized\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user\": \"{{testUserId}}\",\n  \"sobriquet\": \"UnauthorizedUpdate\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "profile"
-              ]
-            },
-            "description": "Attempt to update profile without authentication"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Profile - Profile Not Found",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 404\", function () {",
-                  "    pm.response.to.have.status(404);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates profile not found\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "    pm.expect(jsonData.error).to.include('not found');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user\": \"00000000-0000-0000-0000-000000000999\",\n  \"sobriquet\": \"Test\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "profile"
-              ]
-            },
-            "description": "Attempt to update non-existent profile"
-          },
-          "response": []
-        },
-        {
-          "name": "Verify Profile Update",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Profile was updated correctly\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.sobriquet).to.equal('TheMovieCritic');",
-                  "    pm.expect(jsonData.favoriteGenre).to.equal('Science Fiction');",
-                  "    pm.expect(jsonData.favoriteMediaType).to.equal('Movie');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "{{testUserId}}",
-                "profile"
-              ]
-            },
-            "description": "Verify that profile updates were saved"
-          },
-          "response": []
-        },
-        {
-          "name": "Recalculate Statistics - Success",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response has success message\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('message');",
-                  "    pm.expect(jsonData.message).to.include('recalculated');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "{{testUserId}}",
-                "profile"
-              ]
-            },
-            "description": "Recalculate profile statistics (POST to trigger recalculation)"
-          },
-          "response": []
-        },
-        {
-          "name": "Recalculate Statistics - Unauthorized",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 401\", function () {",
-                  "    pm.response.to.have.status(401);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "{{testUserId}}",
-                "profile"
-              ]
-            },
-            "description": "Attempt to recalculate statistics without authentication"
-          },
-          "response": []
-        }
-      ],
-      "description": "Tests for user profile endpoint (GET, PUT, POST for statistics)"
-    },
-    {
-      "name": "Authorization Tests",
-      "item": [
-        {
-          "name": "Create Second User",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "// Generate unique username for second user",
-                  "const timestamp = Date.now();",
-                  "const randomNum = Math.floor(Math.random() * 10000);",
-                  "const username = `seconduser_${timestamp}_${randomNum}`;",
-                  "pm.collectionVariables.set('secondUsername', username);"
-                ],
-                "type": "text/javascript"
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 201\", function () {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "pm.test(\"Second user created\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.collectionVariables.set('secondUserId', jsonData.user.uuid);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"{{secondUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "register"
-              ]
-            },
-            "description": "Create a second user for authorization tests"
-          },
-          "response": []
-        },
-        {
-          "name": "Login Second User",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Token received\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.collectionVariables.set('secondUserToken', jsonData.token);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"{{secondUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "login"
-              ]
-            },
-            "description": "Login second user to get their token"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Another User's Profile - Forbidden",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 403\", function () {",
-                  "    pm.response.to.have.status(403);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates forbidden access\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{secondUserToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user\": \"{{testUserId}}\",\n  \"sobriquet\": \"HackerAttempt\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "profile"
-              ]
-            },
-            "description": "Attempt to update another user's profile (should fail with 403)"
-          },
-          "response": []
-        },
-        {
-          "name": "Recalculate Another User's Stats - Forbidden",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 403\", function () {",
-                  "    pm.response.to.have.status(403);",
-                  "});",
-                  "",
-                  "pm.test(\"Error indicates forbidden access\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('error');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{secondUserToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "{{testUserId}}",
-                "profile"
-              ]
-            },
-            "description": "Attempt to recalculate another user's statistics (should fail with 403)"
-          },
-          "response": []
-        }
-      ],
-      "description": "Tests for authorization and access control"
-    }
-  ]
+	"info": {
+		"_postman_id": "06c2e729-222f-4ba8-b6c1-bbe38a65adab",
+		"name": "1 MRP User API",
+		"description": "Complete Postman collection for User HTTP Endpoints (Register, Login, Profile) with comprehensive tests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "49357378",
+		"_collection_link": "https://paigner-9302939.postman.co/workspace/Paigner's-Workspace~dd63fcbe-dc17-4b0b-86a0-b9348a7c06b5/collection/49357378-06c2e729-222f-4ba8-b6c1-bbe38a65adab?action=share&source=collection_link&creator=49357378"
+	},
+	"item": [
+		{
+			"name": "User Registration",
+			"item": [
+				{
+					"name": "Register User - Success",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate unique username for this test run",
+									"const timestamp = Date.now();",
+									"const randomNum = Math.floor(Math.random() * 10000);",
+									"const username = `testuser_${timestamp}_${randomNum}`;",
+									"pm.collectionVariables.set('testUsername', username);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has user object with uuid\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"    pm.expect(jsonData.user).to.have.property('uuid');",
+									"    pm.collectionVariables.set('testUserId', jsonData.user.uuid);",
+									"});",
+									"",
+									"pm.test(\"Response has success message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData.message).to.include('registered successfully');",
+									"});",
+									"",
+									"pm.test(\"User object contains required fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user).to.have.property('username');",
+									"    pm.expect(jsonData.user).to.have.property('created');",
+									"    pm.expect(jsonData.user).to.have.property('profileUuid');",
+									"    pm.collectionVariables.set('profileUuid', jsonData.user.profileUuid);",
+									"});",
+									"",
+									"pm.test(\"UUID is valid GUID format\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+									"    pm.expect(jsonData.user.uuid).to.match(guidRegex);",
+									"});",
+									"",
+									"pm.test(\"Response time is less than 500ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(500);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"register"
+							]
+						},
+						"description": "Register a new user successfully"
+					},
+					"response": []
+				},
+				{
+					"name": "Register User - Missing Username",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error message indicates missing fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.include('username');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"{{testPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"register"
+							]
+						},
+						"description": "Attempt to register without username"
+					},
+					"response": []
+				},
+				{
+					"name": "Register User - Missing Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error message indicates missing fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.include('password');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"test_no_password\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"register"
+							]
+						},
+						"description": "Attempt to register without password"
+					},
+					"response": []
+				},
+				{
+					"name": "Register User - Duplicate Username",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"",
+									"pm.test(\"Error indicates username already exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.include('failed');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"register"
+							]
+						},
+						"description": "Attempt to register with existing username"
+					},
+					"response": []
+				},
+				{
+					"name": "Register User - Invalid JSON",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error indicates invalid JSON\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.include('JSON');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{invalid json"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"register"
+							]
+						},
+						"description": "Attempt to register with invalid JSON"
+					},
+					"response": []
+				}
+			],
+			"description": "Tests for user registration endpoint"
+		},
+		{
+			"name": "User Login",
+			"item": [
+				{
+					"name": "Login User - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has token\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"    pm.collectionVariables.set('authToken', jsonData.token);",
+									"});",
+									"",
+									"pm.test(\"Token is not empty\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.token).to.not.be.empty;",
+									"});",
+									"",
+									"pm.test(\"Response has success message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData.message).to.include('successful');",
+									"});",
+									"",
+									"pm.test(\"Response includes username\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('username');",
+									"    pm.expect(jsonData.username).to.equal(pm.collectionVariables.get('testUsername'));",
+									"});",
+									"",
+									"pm.test(\"Response time is less than 500ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(500);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"login"
+							]
+						},
+						"description": "Login with valid credentials"
+					},
+					"response": []
+				},
+				{
+					"name": "Login User - Invalid Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test(\"Error indicates invalid credentials\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.include('Invalid');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"WrongPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"login"
+							]
+						},
+						"description": "Attempt to login with wrong password"
+					},
+					"response": []
+				},
+				{
+					"name": "Login User - Invalid Username",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test(\"Error indicates invalid credentials\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"nonexistent_user_999\",\n  \"password\": \"{{testPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"login"
+							]
+						},
+						"description": "Attempt to login with non-existent user"
+					},
+					"response": []
+				},
+				{
+					"name": "Login User - Missing Username",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error indicates missing fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"{{testPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"login"
+							]
+						},
+						"description": "Attempt to login without username"
+					},
+					"response": []
+				},
+				{
+					"name": "Login User - Missing Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error indicates missing fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"{{testUsername}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"login"
+							]
+						},
+						"description": "Attempt to login without password"
+					},
+					"response": []
+				},
+				{
+					"name": "Login User - Invalid JSON",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error indicates invalid JSON\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.include('JSON');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{invalid json structure"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"login"
+							]
+						},
+						"description": "Attempt to login with invalid JSON"
+					},
+					"response": []
+				}
+			],
+			"description": "Tests for user login endpoint"
+		},
+		{
+			"name": "User Profile",
+			"item": [
+				{
+					"name": "Get Profile - Success (Query Parameter)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains profile details\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('uuid');",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"    pm.expect(jsonData).to.have.property('numberOfLogins');",
+									"    pm.expect(jsonData).to.have.property('numberOfRatingsGiven');",
+									"    pm.expect(jsonData).to.have.property('numberOfMediaAdded');",
+									"    pm.expect(jsonData).to.have.property('numberOfReviewsWritten');",
+									"    pm.expect(jsonData).to.have.property('favoriteGenre');",
+									"    pm.expect(jsonData).to.have.property('favoriteMediaType');",
+									"    pm.expect(jsonData).to.have.property('sobriquet');",
+									"    pm.expect(jsonData).to.have.property('aboutMe');",
+									"});",
+									"",
+									"pm.test(\"Profile user ID matches\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user).to.equal(pm.collectionVariables.get('testUserId'));",
+									"});",
+									"",
+									"pm.test(\"Login count increased\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.numberOfLogins).to.be.at.least(1);",
+									"});",
+									"",
+									"pm.test(\"Response time is less than 500ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(500);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/profile?userid={{testUserId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							],
+							"query": [
+								{
+									"key": "userid",
+									"value": "{{testUserId}}"
+								}
+							]
+						},
+						"description": "Get user profile using query parameter (legacy format)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile - Success (Path Parameter)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains profile details\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('uuid');",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"});",
+									"",
+									"pm.test(\"Profile user ID matches\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user).to.equal(pm.collectionVariables.get('testUserId'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}",
+								"profile"
+							]
+						},
+						"description": "Get user profile using RESTful path parameter"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile - Unauthorized (No Token)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test(\"Error indicates unauthorized\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/profile?userid={{testUserId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							],
+							"query": [
+								{
+									"key": "userid",
+									"value": "{{testUserId}}"
+								}
+							]
+						},
+						"description": "Attempt to get profile without authentication"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile - Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test(\"Error indicates profile not found\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.include('not found');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/profile?userid=00000000-0000-0000-0000-000000000999",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							],
+							"query": [
+								{
+									"key": "userid",
+									"value": "00000000-0000-0000-0000-000000000999"
+								}
+							]
+						},
+						"description": "Attempt to get non-existent profile"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile - Invalid User ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error indicates invalid userid\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/profile?userid=invalid-guid",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							],
+							"query": [
+								{
+									"key": "userid",
+									"value": "invalid-guid"
+								}
+							]
+						},
+						"description": "Attempt to get profile with invalid GUID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile - Success (Sobriquet and AboutMe)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has success message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData.message).to.include('updated');",
+									"});",
+									"",
+									"pm.test(\"Response time is less than 500ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(500);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sobriquet\": \"MovieLover2024\",\n  \"aboutMe\": \"I love watching sci-fi movies and TV series!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}",
+								"profile"
+							]
+						},
+						"description": "Update user profile with sobriquet and aboutMe using RESTful path parameter"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile - Success (Path Parameter)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has success message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData.message).to.include('updated');",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sobriquet\": \"TheMovieCritic\",\n  \"aboutMe\": \"Passionate about cinema and rating great content!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}",
+								"profile"
+							]
+						},
+						"description": "Update user profile using RESTful path parameter"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile - Unauthorized (No Token)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test(\"Error indicates unauthorized\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sobriquet\": \"UnauthorizedUpdate\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}",
+								"profile"
+							]
+						},
+						"description": "Attempt to update profile without authentication"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile - Profile Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test(\"Error indicates profile not found\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.include('not found');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sobriquet\": \"Test\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/00000000-0000-0000-0000-000000000999/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"00000000-0000-0000-0000-000000000999",
+								"profile"
+							]
+						},
+						"description": "Attempt to update non-existent profile"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Profile Update",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Profile was updated correctly\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.sobriquet).to.equal('TheMovieCritic');",
+									"    pm.expect(jsonData.aboutMe).to.equal('Passionate about cinema and rating great content!');",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}",
+								"profile"
+							]
+						},
+						"description": "Verify that profile updates were saved"
+					},
+					"response": []
+				},
+				{
+					"name": "Recalculate Statistics - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has success message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData.message).to.include('recalculated');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}",
+								"profile"
+							]
+						},
+						"description": "Recalculate profile statistics (POST to trigger recalculation)"
+					},
+					"response": []
+				},
+				{
+					"name": "Recalculate Statistics - Unauthorized",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}",
+								"profile"
+							]
+						},
+						"description": "Attempt to recalculate statistics without authentication"
+					},
+					"response": []
+				}
+			],
+			"description": "Tests for user profile endpoint (GET, PUT, POST for statistics)"
+		},
+		{
+			"name": "Authorization Tests",
+			"item": [
+				{
+					"name": "Create Second User",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate unique username for second user",
+									"const timestamp = Date.now();",
+									"const randomNum = Math.floor(Math.random() * 10000);",
+									"const username = `seconduser_${timestamp}_${randomNum}`;",
+									"pm.collectionVariables.set('secondUsername', username);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Second user created\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('secondUserId', jsonData.user.uuid);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"{{secondUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"register"
+							]
+						},
+						"description": "Create a second user for authorization tests"
+					},
+					"response": []
+				},
+				{
+					"name": "Login Second User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Token received\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('secondUserToken', jsonData.token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"{{secondUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"login"
+							]
+						},
+						"description": "Login second user to get their token"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Another User's Profile - Forbidden",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 403\", function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test(\"Error indicates forbidden access\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{secondUserToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sobriquet\": \"HackerAttempt\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}",
+								"profile"
+							]
+						},
+						"description": "Attempt to update another user's profile (should fail with 403)"
+					},
+					"response": []
+				},
+				{
+					"name": "Recalculate Another User's Stats - Forbidden",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 403\", function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test(\"Error indicates forbidden access\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{secondUserToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{testUserId}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}",
+								"profile"
+							]
+						},
+						"description": "Attempt to recalculate another user's statistics (should fail with 403)"
+					},
+					"response": []
+				}
+			],
+			"description": "Tests for authorization and access control"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{authToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "testUserId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "testUsername",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "testPassword",
+			"value": "Test123!",
+			"type": "string"
+		},
+		{
+			"key": "secondUserId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "secondUsername",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "secondUserToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "profileUuid",
+			"value": "",
+			"type": "string"
+		}
+	]
 }
