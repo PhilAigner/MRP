@@ -303,7 +303,8 @@ async function getProfile() {
         return;
     }
     
-    const result = await apiCall(`/users/profile?userid=${userId}`, 'GET', null, true);
+    // Use the correct endpoint format: /api/users/{userId}/profile
+    const result = await apiCall(`/users/${userId}/profile`, 'GET', null, true);
     displayResponse('profile-response', result.status, result.data, result.ok);
     
     // Save the last viewed user ID
@@ -341,9 +342,8 @@ async function updateProfile() {
         return;
     }
     
-    // API expects 'user' field, not 'userid'
-    const result = await apiCall('/users/profile', 'PUT', {
-        user: userId,
+    // API expects userId in the path: /api/users/{userId}/profile
+    const result = await apiCall(`/users/${userId}/profile`, 'PUT', {
         sobriquet,
         aboutMe
     }, true);
