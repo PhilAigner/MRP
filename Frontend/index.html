@@ -424,18 +424,20 @@
                     <h2>User Profile</h2>
                     <div class="info-box">
                         <h4>ℹ️ Info</h4>
-                        <p>View and update user profile. Statistics are automatically tracked by the system.</p>
+                        <p>View and update user profiles. Statistics are automatically tracked by the system. Leave User ID empty to view your own profile.</p>
                     </div>
                     
                     <div class="form-group">
-                        <label>User ID</label>
-                        <input type="text" id="profile-userid" placeholder="User UUID">
+                        <label>User ID (optional - leave empty for your own profile)</label>
+                        <input type="text" id="profile-userid" placeholder="User UUID (optional)">
                     </div>
                     <button class="btn btn-primary" onclick="getProfile()">Get Profile</button>
-                    <button class="btn btn-secondary" onclick="showUpdateProfile()">Update Profile</button>
+                    <button class="btn btn-secondary" onclick="getMyProfile()">View My Profile</button>
+                    <button class="btn btn-secondary" onclick="showUpdateProfile()">Update My Profile</button>
                     
                     <div id="update-profile-form" class="hidden" style="margin-top: 20px;">
-                        <h3>Update Profile</h3>
+                        <h3>Update My Profile</h3>
+                        <p style="color: #666; margin-bottom: 15px;">You can only update your own profile. This will automatically use your logged-in user ID.</p>
                         <div class="form-group">
                             <label>Sobriquet (Nickname)</label>
                             <input type="text" id="profile-sobriquet" placeholder="Your nickname">
@@ -444,7 +446,7 @@
                             <label>About Me</label>
                             <textarea id="profile-aboutme" placeholder="Tell us about yourself"></textarea>
                         </div>
-                        <button class="btn btn-primary" onclick="updateProfile()">Save Profile</button>
+                        <button class="btn btn-primary" onclick="updateProfile()">Save My Profile</button>
                     </div>
                     
                     <div id="profile-response" class="response-area hidden"></div>
