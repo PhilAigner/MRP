@@ -1,0 +1,43 @@
+﻿version: '3.8'
+services:
+  db:
+    image: postgres:17
+    container_name: pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: appsecret
+      POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d appdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: adminpass
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - db
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/misc/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+volumes:
+  pgdata:
+  pgadmin-data:

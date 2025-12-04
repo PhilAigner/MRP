@@ -78,7 +78,6 @@ namespace MRP
 
         public async Task<int> StartAsync()
         {
-
             List<IHttpEndpoint> HttpEndpoints = new List<IHttpEndpoint>
             {
                 // User endpoints (login and register don't require authentication)
@@ -93,9 +92,8 @@ namespace MRP
                 new RatingsHTTPEndpoint(ratingRepository, userRepository, mediaRepository, profileRepository, tokenService),
             };
 
-            
-            await HttpServer.RunServer("http://localhost:8080/api/", HttpEndpoints);
-
+            // Ändern Sie localhost zu 0.0.0.0 für Container-Kompatibilität
+            await HttpServer.RunServer("http://127.0.0.1:8080/api/", HttpEndpoints);
 
             return 0;
         }

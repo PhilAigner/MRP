@@ -290,11 +290,28 @@ function logoutUser() {
     }
 }
 
+async function getMyProfile() {
+    if (!savedData.userId) {
+        alert('Please log in first to view your profile');
+        return;
+    }
+    
+    if (!savedData.token) {
+        alert('Please login first to view profiles');
+        return;
+    }
+    
+    // Set the input field to the current user's ID and get the profile
+    document.getElementById('profile-userid').value = savedData.userId;
+    await getProfile();
+}
+
 async function getProfile() {
+    // If no user ID is specified, use the logged-in user's ID
     let userId = document.getElementById('profile-userid').value || savedData.userId;
     
     if (!userId) {
-        alert('Please enter a User ID or register a user first');
+        alert('Please enter a User ID or log in first');
         return;
     }
     
@@ -328,12 +345,11 @@ function useSavedUserId() {
 }
 
 async function updateProfile() {
-    let userId = document.getElementById('profile-userid').value || savedData.lastViewedUserId || savedData.userId;
-    const sobriquet = document.getElementById('profile-sobriquet').value;
-    const aboutMe = document.getElementById('profile-aboutme').value;
+    // Use the logged-in user's ID automatically
+    let userId = savedData.userId;
     
     if (!userId) {
-        alert('Please enter a User ID or load a profile first');
+        alert('Please log in first to update your profile');
         return;
     }
     
@@ -342,17 +358,44 @@ async function updateProfile() {
         return;
     }
     
-    // API expects userId in the path: /api/users/{userId}/profile
-    const result = await apiCall(`/users/${userId}/profile`, 'PUT', {
-        sobriquet,
-        aboutMe
-    }, true);
+    const sobriquet = document.getElementById('profile-sobriquet').value;
+    const aboutMe = document.getElementById('profile-aboutme').value;
     
-    displayResponse('profile-response', result.status, result.data, result.ok);
+    // Validate that we have at least one field to update
+    if (!sobriquet && !aboutMe) {
+        alert('Please enter at least one field to update (Sobriquet or About Me)');
+        return;
+    }
     
-    // Reload profile after update
-    if (result.ok) {
-        setTimeout(() => getProfile(), 500);
+    console.log(`Updating profile for logged-in user ID: ${userId}`);
+    console.log('Update data:', { sobriquet, aboutMe });
+    
+    try {
+        // API expects userId in the path: /api/users/{userId}/profile
+        const result = await apiCall(`/users/${userId}/profile`, 'PUT', {
+            sobriquet: sobriquet || null,
+            aboutMe: aboutMe || null
+        }, true);
+        
+        displayResponse('profile-response', result.status, result.data, result.ok);
+        
+        if (result.ok) {
+            alert('Your profile was updated successfully!');
+            // Clear the form fields after successful update
+            document.getElementById('profile-sobriquet').value = '';
+            document.getElementById('profile-aboutme').value = '';
+            // Hide the update form
+            document.getElementById('update-profile-form').classList.add('hidden');
+            // Set the profile input to the current user and reload profile to show changes
+            document.getElementById('profile-userid').value = userId;
+            setTimeout(() => getProfile(), 500);
+        } else {
+            alert(`Failed to update profile: ${result.data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        displayResponse('profile-response', 500, { error: `Error: ${error.message}` }, false);
+        alert(`Error updating profile: ${error.message}`);
     }
 }
 

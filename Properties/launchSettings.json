@@ -2,6 +2,9 @@
   "profiles": {
     "MRP": {
       "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
     }
   }
 }
