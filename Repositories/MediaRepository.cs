@@ -1,4 +1,5 @@
 ﻿using Npgsql;
+using System.Data;
 
 namespace MRP;
 
@@ -7,145 +8,84 @@ public class MediaRepository :  IMediaRepository {
     private readonly DatabaseConnection _dbConnection;
     private readonly UserRepository _userRepository;
 
+    private const string SelectQuery = "SELECT uuid, title, description, media_type, release_year, age_restriction, genre, created_at, created_by_uuid FROM media_entries";
+
     public MediaRepository(DatabaseConnection dbConnection, UserRepository userRepository)
     {
         _dbConnection = dbConnection;
         _userRepository = userRepository;
     }
 
+    private MediaEntry? MapReaderToMediaEntry(NpgsqlDataReader reader)
+    {
+        var creatorUuid = reader.GetGuid(8);
+        var creator = _userRepository.GetUserById(creatorUuid);
+        
+        if (creator == null) return null;
 
-    public List<MediaEntry> GetAll() {
+        return new MediaEntry(
+            reader.GetGuid(0),
+            reader.GetString(1),
+            reader.GetString(2),
+            Enum.Parse<EMediaType>(reader.GetString(3)),
+            reader.GetInt32(4),
+            Enum.Parse<EFSK>(reader.GetString(5)),
+            reader.GetString(6),
+            reader.GetDateTime(7),
+            creator
+        );
+    }
+
+    private List<MediaEntry> ExecuteQuery(string query, Action<NpgsqlCommand>? addParameters = null)
+    {
         var mediaEntries = new List<MediaEntry>();
         using var connection = _dbConnection.CreateConnection();
         connection.Open();
 
-        using var cmd = new NpgsqlCommand(
-            "SELECT uuid, title, description, media_type, release_year, age_restriction, genre, created_at, created_by_uuid FROM media_entries",
-            connection);
-        using var reader = cmd.ExecuteReader();
+        using var cmd = new NpgsqlCommand(query, connection);
+        addParameters?.Invoke(cmd);
 
+        using var reader = cmd.ExecuteReader();
         while (reader.Read())
         {
-            var creatorUuid = reader.GetGuid(8);
-            var creator = _userRepository.GetUserById(creatorUuid);
-            if (creator != null)
+            var entry = MapReaderToMediaEntry(reader);
+            if (entry != null)
             {
-                mediaEntries.Add(new MediaEntry(
-                    reader.GetGuid(0),
-                    reader.GetString(1),
-                    reader.GetString(2),
-                    Enum.Parse<EMediaType>(reader.GetString(3)),
-                    reader.GetInt32(4),
-                    Enum.Parse<EFSK>(reader.GetString(5)),
-                    reader.GetString(6),
-                    reader.GetDateTime(7),
-                    creator
-                ));
+                mediaEntries.Add(entry);
             }
         }
 
         return mediaEntries;
     }
 
-    public MediaEntry? GetMediaById(Guid id) {
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
-
-        using var cmd = new NpgsqlCommand(
-            "SELECT uuid, title, description, media_type, release_year, age_restriction, genre, created_at, created_by_uuid FROM media_entries WHERE uuid = @uuid",
-            connection);
-        cmd.Parameters.AddWithValue("uuid", id);
-
-        using var reader = cmd.ExecuteReader();
-        if (reader.Read())
-        {
-            var creatorUuid = reader.GetGuid(8);
-            var creator = _userRepository.GetUserById(creatorUuid);
-            if (creator != null)
-            {
-                return new MediaEntry(
-                    reader.GetGuid(0),
-                    reader.GetString(1),
-                    reader.GetString(2),
-                    Enum.Parse<EMediaType>(reader.GetString(3)),
-                    reader.GetInt32(4),
-                    Enum.Parse<EFSK>(reader.GetString(5)),
-                    reader.GetString(6),
-                    reader.GetDateTime(7),
-                    creator
-                );
-            }
-        }
-
-        return null;
+    public List<MediaEntry> GetAll()
+    {
+        return ExecuteQuery(SelectQuery);
     }
 
-    public List<MediaEntry>? GetMediaByTitle(String title) {
-        var mediaEntries = new List<MediaEntry>();
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
-
-        using var cmd = new NpgsqlCommand(
-            "SELECT uuid, title, description, media_type, release_year, age_restriction, genre, created_at, created_by_uuid FROM media_entries WHERE title = @title",
-            connection);
-        cmd.Parameters.AddWithValue("title", title);
-
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-        {
-            var creatorUuid = reader.GetGuid(8);
-            var creator = _userRepository.GetUserById(creatorUuid);
-            if (creator != null)
-            {
-                mediaEntries.Add(new MediaEntry(
-                    reader.GetGuid(0),
-                    reader.GetString(1),
-                    reader.GetString(2),
-                    Enum.Parse<EMediaType>(reader.GetString(3)),
-                    reader.GetInt32(4),
-                    Enum.Parse<EFSK>(reader.GetString(5)),
-                    reader.GetString(6),
-                    reader.GetDateTime(7),
-                    creator
-                ));
-            }
-        }
-
-        return mediaEntries;
+    public MediaEntry? GetMediaById(Guid id)
+    {
+        var results = ExecuteQuery(
+            $"{SelectQuery} WHERE uuid = @uuid",
+            cmd => cmd.Parameters.AddWithValue("uuid", id)
+        );
+        return results.FirstOrDefault();
     }
 
-    public List<MediaEntry>? GetMediaByCreator(Guid userid) {
-        var mediaEntries = new List<MediaEntry>();
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
+    public List<MediaEntry>? GetMediaByTitle(string title)
+    {
+        return ExecuteQuery(
+            $"{SelectQuery} WHERE title = @title",
+            cmd => cmd.Parameters.AddWithValue("title", title)
+        );
+    }
 
-        using var cmd = new NpgsqlCommand(
-            "SELECT uuid, title, description, media_type, release_year, age_restriction, genre, created_at, created_by_uuid FROM media_entries WHERE created_by_uuid = @userid",
-            connection);
-        cmd.Parameters.AddWithValue("userid", userid);
-
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-        {
-            var creatorUuid = reader.GetGuid(8);
-            var creator = _userRepository.GetUserById(creatorUuid);
-            if (creator != null)
-            {
-                mediaEntries.Add(new MediaEntry(
-                    reader.GetGuid(0),
-                    reader.GetString(1),
-                    reader.GetString(2),
-                    Enum.Parse<EMediaType>(reader.GetString(3)),
-                    reader.GetInt32(4),
-                    Enum.Parse<EFSK>(reader.GetString(5)),
-                    reader.GetString(6),
-                    reader.GetDateTime(7),
-                    creator
-                ));
-            }
-        }
-
-        return mediaEntries;
+    public List<MediaEntry>? GetMediaByCreator(Guid userid)
+    {
+        return ExecuteQuery(
+            $"{SelectQuery} WHERE created_by_uuid = @userid",
+            cmd => cmd.Parameters.AddWithValue("userid", userid)
+        );
     }
 
     public Guid AddMedia(MediaEntry mediaEntry) {
