@@ -1,5 +1,4 @@
-﻿version: '3.8'
-services:
+﻿services:
   db:
     image: postgres:17
     container_name: pg17
@@ -7,13 +6,13 @@ services:
     environment:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: appsecret
-      POSTGRES_DB: appdb
+      POSTGRES_DB: mrpdb
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d appdb"]
+      test: ["CMD-SHELL", "pg_isready -U app -d mrpdb"]
       interval: 5s
       timeout: 3s
       retries: 10
