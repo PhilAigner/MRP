@@ -22,11 +22,11 @@ namespace MRP
             Env.Load();
 
             // Get database credentials from environment variables
-            string db_host = Env.GetString("DB_HOST", "localhost");
-            int db_port = Env.GetInt("DB_PORT", 5432);
-            string db_database = Env.GetString("DB_NAME", "mrp_db");
-            string db_username = Env.GetString("DB_USER", "app");
-            string db_password = Env.GetString("DB_PASSWORD", "app");
+            string db_host = Env.GetString("DB_HOST");
+            int db_port = Env.GetInt("DB_PORT");
+            string db_database = Env.GetString("DB_NAME");
+            string db_username = Env.GetString("DB_USER");
+            string db_password = Env.GetString("DB_PASSWORD");
 
             string connectionString = DatabaseConnection.BuildConnectionString(
                 host: db_host,
