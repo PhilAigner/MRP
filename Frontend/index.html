@@ -421,23 +421,18 @@
 
                 <!-- Profile Section -->
                 <section id="profile" class="section">
-                    <h2>User Profile</h2>
+                    <h2>My Profile</h2>
                     <div class="info-box">
                         <h4>ℹ️ Info</h4>
-                        <p>View and update user profiles. Statistics are automatically tracked by the system. Leave User ID empty to view your own profile.</p>
+                        <p>View and update your profile. Statistics are automatically tracked by the system. You can only view and update your own profile.</p>
                     </div>
                     
-                    <div class="form-group">
-                        <label>User ID (optional - leave empty for your own profile)</label>
-                        <input type="text" id="profile-userid" placeholder="User UUID (optional)">
-                    </div>
-                    <button class="btn btn-primary" onclick="getProfile()">Get Profile</button>
-                    <button class="btn btn-secondary" onclick="getMyProfile()">View My Profile</button>
+                    <button class="btn btn-primary" onclick="getProfile()">View My Profile</button>
                     <button class="btn btn-secondary" onclick="showUpdateProfile()">Update My Profile</button>
                     
                     <div id="update-profile-form" class="hidden" style="margin-top: 20px;">
                         <h3>Update My Profile</h3>
-                        <p style="color: #666; margin-bottom: 15px;">You can only update your own profile. This will automatically use your logged-in user ID.</p>
+                        <p style="color: #666; margin-bottom: 15px;">Only the Sobriquet and About Me fields can be updated. Other statistics are tracked automatically.</p>
                         <div class="form-group">
                             <label>Sobriquet (Nickname)</label>
                             <input type="text" id="profile-sobriquet" placeholder="Your nickname">
@@ -455,6 +450,11 @@
                 <!-- Create Media Section -->
                 <section id="media-create" class="section">
                     <h2>Create Media Entry</h2>
+                    <div class="info-box">
+                        <h4>ℹ️ Info</h4>
+                        <p>Create a new media entry. You will automatically be set as the creator using your login session.</p>
+                    </div>
+                    
                     <div class="form-group">
                         <label>Title</label>
                         <input type="text" id="media-title" placeholder="Media title">
@@ -489,10 +489,6 @@
                     <div class="form-group">
                         <label>Genre</label>
                         <input type="text" id="media-genre" placeholder="Action, Comedy, Drama, etc.">
-                    </div>
-                    <div class="form-group">
-                        <label>Creator User ID</label>
-                        <input type="text" id="media-creator" placeholder="User UUID">
                     </div>
                     <button class="btn btn-primary" onclick="createMedia()">Create Media</button>
                     <button class="btn btn-secondary" onclick="createTestMediaEntries()" style="background-color: #28a745;">Create 5 Test Media Entries</button>
@@ -612,13 +608,14 @@
                 <!-- Create Rating Section -->
                 <section id="rating-create" class="section">
                     <h2>Create Rating</h2>
+                    <div class="info-box">
+                        <h4>ℹ️ Info</h4>
+                        <p>Rate a media entry. Your user ID is automatically used from your login session.</p>
+                    </div>
+                    
                     <div class="form-group">
                         <label>Media ID</label>
                         <input type="text" id="rating-media-id" placeholder="Media UUID">
-                    </div>
-                    <div class="form-group">
-                        <label>User ID</label>
-                        <input type="text" id="rating-user-id" placeholder="User UUID">
                     </div>
                     <div class="form-group">
                         <label>Stars (1-5)</label>
@@ -698,16 +695,12 @@
                     <h2>Approve Rating</h2>
                     <div class="info-box">
                         <h4>ℹ️ Info</h4>
-                        <p><strong>This is the only way to make ratings publicly visible.</strong> Only the owner of the media entry can approve ratings. Once approved, the rating becomes publicly visible and is added to the media entry's ratings list.</p>
+                        <p><strong>This is the only way to make ratings publicly visible.</strong> Only the owner of the media entry can approve ratings. Once approved, the rating becomes publicly visible and is added to the media entry's ratings list. Your user ID is automatically used from your login session.</p>
                     </div>
                     
                     <div class="form-group">
                         <label>Rating ID</label>
                         <input type="text" id="approve-rating-id" placeholder="Rating UUID">
-                    </div>
-                    <div class="form-group">
-                        <label>Approver User ID (Media Entry Owner)</label>
-                        <input type="text" id="approve-approver-id" placeholder="User UUID">
                     </div>
                     <button class="btn btn-primary" onclick="approveRating()">Approve Rating</button>
                     <div id="rating-approve-response" class="response-area hidden"></div>
@@ -718,16 +711,12 @@
                     <h2>Like / Unlike Rating</h2>
                     <div class="info-box">
                         <h4>ℹ️ Info</h4>
-                        <p>Like a rating to show appreciation. You can also unlike a rating you previously liked.</p>
+                        <p>Like a rating to show appreciation. You can also unlike a rating you previously liked. Your user ID is automatically used from your login session.</p>
                     </div>
                     
                     <div class="form-group">
                         <label>Rating ID</label>
                         <input type="text" id="like-rating-id" placeholder="Rating UUID">
-                    </div>
-                    <div class="form-group">
-                        <label>User ID (Your ID)</label>
-                        <input type="text" id="like-user-id" placeholder="User UUID">
                     </div>
                     <button class="btn btn-primary" onclick="likeRating()">👍 Like Rating</button>
                     <button class="btn btn-secondary" onclick="unlikeRating()">👎 Unlike Rating</button>
