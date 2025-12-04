@@ -32,6 +32,7 @@ namespace MRP
                 if (profile != null)
                 {
                     profile.numberOfMediaAdded++;
+                    profiles.UpdateProfile(profile);
                 }
             }
             

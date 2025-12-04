@@ -18,9 +18,6 @@ public class Profile
     public string sobriquet { get; set; }
     public string aboutMe { get; set; }
 
-
-
-
     public Profile(Guid owner) 
 	{
 		uuid = Guid.NewGuid();
@@ -35,5 +32,21 @@ public class Profile
         favoriteMediaType = string.Empty;
         sobriquet = string.Empty;
         aboutMe = string.Empty;
+    }
+
+    public Profile(Guid _uuid, Guid _user, int _numberOfLogins, int _numberOfRatingsGiven, 
+                   int _numberOfMediaAdded, int _numberOfReviewsWritten, string _favoriteGenre, 
+                   string _favoriteMediaType, string _sobriquet, string _aboutMe)
+    {
+        uuid = _uuid;
+        user = _user;
+        numberOfLogins = _numberOfLogins;
+        numberOfRatingsGiven = _numberOfRatingsGiven;
+        numberOfMediaAdded = _numberOfMediaAdded;
+        numberOfReviewsWritten = _numberOfReviewsWritten;
+        favoriteGenre = _favoriteGenre;
+        favoriteMediaType = _favoriteMediaType;
+        sobriquet = _sobriquet;
+        aboutMe = _aboutMe;
     }
 }

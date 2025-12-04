@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime;
 
 namespace MRP;
@@ -13,7 +13,7 @@ public class User
 
     public Guid profileUuid { get; }
 
-	public User(string _username, string _password, ProfileRepository profileRepository)
+	public User(string _username, string _password, Guid _profileUuid)
 	{
         uuid = Guid.NewGuid();
 		
@@ -22,8 +22,17 @@ public class User
 
 		created = DateTime.Now;
 
-		profileUuid = profileRepository.AddProfile(new Profile(uuid));
+		profileUuid = _profileUuid;
     }
+
+	public User(Guid _uuid, string _username, string _password, DateTime _created, Guid _profileUuid)
+	{
+		uuid = _uuid;
+		username = _username;
+		password = _password;
+		created = _created;
+		profileUuid = _profileUuid;
+	}
 
 
 	public string getPassword()

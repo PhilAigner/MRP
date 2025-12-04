@@ -2,24 +2,47 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography.X509Certificates;
+using DotNetEnv;
 
 namespace MRP
 {
     internal class Handler
     {
-        private UserRepository userRepository = new UserRepository();
-
-        private MediaRepository mediaRepository = new MediaRepository();
-
-        private RatingRepository ratingRepository = new RatingRepository();
-
-        private ProfileRepository profileRepository = new ProfileRepository();
-
-        private TokenService tokenService = new TokenService();
+        private DatabaseConnection dbConnection;
+        private ProfileRepository profileRepository;
+        private UserRepository userRepository;
+        private MediaRepository mediaRepository;
+        private RatingRepository ratingRepository;
+        private TokenService tokenService;
 
 
         public Handler()
         {
+            // Load environment variables from .env file
+            Env.Load();
+
+            // Get database credentials from environment variables
+            string db_host = Env.GetString("DB_HOST", "localhost");
+            int db_port = Env.GetInt("DB_PORT", 5432);
+            string db_database = Env.GetString("DB_NAME", "mrp_db");
+            string db_username = Env.GetString("DB_USER", "app");
+            string db_password = Env.GetString("DB_PASSWORD", "app");
+
+            string connectionString = DatabaseConnection.BuildConnectionString(
+                host: db_host,
+                port: db_port,
+                database: db_database,
+                username: db_username,
+                password: db_password
+            );
+
+            dbConnection = new DatabaseConnection(connectionString);
+            profileRepository = new ProfileRepository(dbConnection);
+            userRepository = new UserRepository(dbConnection, profileRepository);
+            mediaRepository = new MediaRepository(dbConnection, userRepository);
+            ratingRepository = new RatingRepository(dbConnection);
+            tokenService = new TokenService();
+
             //SAMPLE CODE TO SHOWCASE Repositories
 
             /*

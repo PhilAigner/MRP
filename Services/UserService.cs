@@ -26,9 +26,16 @@ namespace MRP
             //test if user exists
             if (user != null) return Guid.Empty;
 
-            //create new user
-            User newUser = new User(username, password, profileRepository);
-            users.AddUser(newUser);
+            //create new user with temporary profileUuid
+            User newUser = new User(username, password, Guid.Empty);
+            
+            //save user first (must exist before profile due to foreign key)
+            var userUuid = users.AddUser(newUser);
+            if (userUuid == Guid.Empty) return Guid.Empty;
+
+            //now create and save the profile (linked via user_uuid foreign key)
+            Profile newProfile = new Profile(newUser.uuid);
+            profileRepository.AddProfile(newProfile);
 
             return newUser.uuid;
         }
@@ -47,6 +54,7 @@ namespace MRP
                 if (profile != null)
                 {
                     profile.numberOfLogins++;
+                    profileRepository.UpdateProfile(profile);
                 }
                 
                 // Generate and return token

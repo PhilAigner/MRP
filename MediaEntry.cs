@@ -37,4 +37,21 @@ public class MediaEntry
         ratings =  new List<Rating>();
         averageScore = (float) 0;
     }
+
+    public MediaEntry(Guid _uuid, string _title, string _description, EMediaType _mediaType, 
+                      int _releaseYear, EFSK _ageRestriction, string _genre, DateTime _createdAt, 
+                      User _createdBy)
+    {
+        uuid = _uuid;
+        title = _title;
+        description = _description;
+        mediaType = _mediaType;
+        releaseYear = _releaseYear;
+        ageRestriction = _ageRestriction;
+        genre = _genre;
+        createdAt = _createdAt;
+        createdBy = _createdBy;
+        ratings = new List<Rating>();
+        averageScore = (float) 0;
+    }
 }
