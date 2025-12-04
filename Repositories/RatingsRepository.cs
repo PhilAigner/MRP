@@ -152,4 +152,73 @@ public class RatingRepository :  IRatingsRepository {
             cmd.ExecuteNonQuery();
         }
     }
+
+    public bool UpdateRating(Rating rating)
+    {
+        using var connection = _dbConnection.CreateConnection();
+        connection.Open();
+
+        using var cmd = new NpgsqlCommand(
+            "UPDATE ratings SET stars = @stars, comment = @comment, public_visible = @publicVisible " +
+            "WHERE uuid = @uuid",
+            connection);
+
+        cmd.Parameters.AddWithValue("uuid", rating.uuid);
+        cmd.Parameters.AddWithValue("stars", rating.stars);
+        cmd.Parameters.AddWithValue("comment", rating.comment ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("publicVisible", rating.publicVisible);
+
+        var rowsAffected = cmd.ExecuteNonQuery();
+        return rowsAffected > 0;
+    }
+
+    public bool DeleteRating(Guid id)
+    {
+        using var connection = _dbConnection.CreateConnection();
+        connection.Open();
+
+        // Delete rating_likes first (if not using CASCADE)
+        using var deleteLikesCmd = new NpgsqlCommand(
+            "DELETE FROM rating_likes WHERE rating_uuid = @uuid",
+            connection);
+        deleteLikesCmd.Parameters.AddWithValue("uuid", id);
+        deleteLikesCmd.ExecuteNonQuery();
+
+        // Delete rating
+        using var cmd = new NpgsqlCommand("DELETE FROM ratings WHERE uuid = @uuid", connection);
+        cmd.Parameters.AddWithValue("uuid", id);
+
+        var rowsAffected = cmd.ExecuteNonQuery();
+        return rowsAffected > 0;
+    }
+
+    public bool AddLike(Guid ratingId, Guid userId)
+    {
+        using var connection = _dbConnection.CreateConnection();
+        connection.Open();
+
+        using var cmd = new NpgsqlCommand(
+            "INSERT INTO rating_likes (rating_uuid, user_uuid) VALUES (@ratingUuid, @userUuid) ON CONFLICT DO NOTHING",
+            connection);
+        cmd.Parameters.AddWithValue("ratingUuid", ratingId);
+        cmd.Parameters.AddWithValue("userUuid", userId);
+
+        var rowsAffected = cmd.ExecuteNonQuery();
+        return rowsAffected > 0;
+    }
+
+    public bool RemoveLike(Guid ratingId, Guid userId)
+    {
+        using var connection = _dbConnection.CreateConnection();
+        connection.Open();
+
+        using var cmd = new NpgsqlCommand(
+            "DELETE FROM rating_likes WHERE rating_uuid = @ratingUuid AND user_uuid = @userUuid",
+            connection);
+        cmd.Parameters.AddWithValue("ratingUuid", ratingId);
+        cmd.Parameters.AddWithValue("userUuid", userId);
+
+        var rowsAffected = cmd.ExecuteNonQuery();
+        return rowsAffected > 0;
+    }
 }

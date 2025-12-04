@@ -72,9 +72,9 @@ namespace MRP
         public bool editProfile(Profile newProfile) {
             var profile = profileRepository.GetByOwnerId(newProfile.user);
             if (profile == null) return false;
-            profileRepository.GetAll().Remove(profile);
-            profileRepository.GetAll().Add(newProfile);
-            return true;
+            
+            // Update the profile in the database
+            return profileRepository.UpdateProfile(newProfile);
         }
     }
 }

@@ -43,9 +43,9 @@ namespace MRP
         {
             var existingEntry = media.GetMediaById(entry.uuid);
             if (existingEntry == null) return false;
-            media.GetAll().Remove(existingEntry);
-            media.GetAll().Add(entry);
-            return true;
+            
+            // Update in database
+            return media.UpdateMedia(entry);
         }
 
         public bool deleteMediaEntry(Guid id)
@@ -58,26 +58,36 @@ namespace MRP
             if (profile != null && profile.numberOfMediaAdded > 0)
             {
                 profile.numberOfMediaAdded--;
+                profiles.UpdateProfile(profile);
             }
             
-            media.GetAll().Remove(existingEntry);
-            //also remove all ratings for this media entry
+            // Delete from database
+            bool deleted = media.DeleteMedia(id);
+            if (!deleted) return false;
+            
+            // Also remove all ratings for this media entry
             var ratingsToRemove = ratings.GetAll().Where(r => r.mediaEntry == id).ToList();
-            if (ratingsToRemove == null) return true;
             foreach (var rating in ratingsToRemove)
             {
                 // Update profile statistics for each removed rating
                 var ratingUserProfile = profiles.GetByOwnerId(rating.user);
-                if (ratingUserProfile != null && ratingUserProfile.numberOfRatingsGiven > 0)
+                if (ratingUserProfile != null)
                 {
-                    ratingUserProfile.numberOfRatingsGiven--;
+                    if (ratingUserProfile.numberOfRatingsGiven > 0)
+                    {
+                        ratingUserProfile.numberOfRatingsGiven--;
+                    }
+                    if (!string.IsNullOrWhiteSpace(rating.comment) && ratingUserProfile.numberOfReviewsWritten > 0)
+                    {
+                        ratingUserProfile.numberOfReviewsWritten--;
+                    }
+                    profiles.UpdateProfile(ratingUserProfile);
                 }
-                if (!string.IsNullOrWhiteSpace(rating.comment) && ratingUserProfile != null && ratingUserProfile.numberOfReviewsWritten > 0)
-                {
-                    ratingUserProfile.numberOfReviewsWritten--;
-                }
+                
+                // Delete rating from database (ratings are deleted by CASCADE in DB, but we still need to update the in-memory list)
                 ratings.GetAll().Remove(rating);
             }
+            
             return true;
         }
     }

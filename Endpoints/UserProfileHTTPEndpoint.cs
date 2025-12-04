@@ -160,7 +160,10 @@ namespace MRP
                     // check if user is updating their own profile
                     if (userId != authenticatedUserId)
                     {
-                        await AuthenticationHelper.SendForbiddenResponse(context.Response);
+                        await HttpServer.Json(context.Response, 403, new { 
+                            error = "Forbidden. You can only update your own profile.", 
+                            detail = $"Token userId: {authenticatedUserId}, Profile userId: {userId}" 
+                        });
                         return;
                     }
 
