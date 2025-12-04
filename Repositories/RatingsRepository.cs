@@ -8,34 +8,39 @@ public class RatingRepository :  IRatingsRepository {
 
     private readonly DatabaseConnection _dbConnection;
 
+    private const string SelectQuery = "SELECT uuid, media_entry_uuid, user_uuid, stars, comment, created_at, public_visible FROM ratings";
+
     public RatingRepository(DatabaseConnection dbConnection)
     {
         _dbConnection = dbConnection;
     }
 
+    private Rating MapReaderToRating(NpgsqlDataReader reader)
+    {
+        return new Rating(
+            reader.GetGuid(0),
+            reader.GetGuid(1),
+            reader.GetGuid(2),
+            reader.GetInt32(3),
+            reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+            reader.GetDateTime(5),
+            reader.GetBoolean(6)
+        );
+    }
 
-    public List<Rating> GetAll() {
+    private List<Rating> ExecuteQuery(string query, Action<NpgsqlCommand>? addParameters = null)
+    {
         var ratings = new List<Rating>();
         using var connection = _dbConnection.CreateConnection();
         connection.Open();
 
-        using var cmd = new NpgsqlCommand(
-            "SELECT uuid, media_entry_uuid, user_uuid, stars, comment, created_at, public_visible FROM ratings",
-            connection);
-        using var reader = cmd.ExecuteReader();
+        using var cmd = new NpgsqlCommand(query, connection);
+        addParameters?.Invoke(cmd);
 
+        using var reader = cmd.ExecuteReader();
         while (reader.Read())
         {
-            var rating = new Rating(
-                reader.GetGuid(0),
-                reader.GetGuid(1),
-                reader.GetGuid(2),
-                reader.GetInt32(3),
-                reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                reader.GetDateTime(5),
-                reader.GetBoolean(6)
-            );
-            ratings.Add(rating);
+            ratings.Add(MapReaderToRating(reader));
         }
 
         connection.Close();
@@ -48,68 +53,26 @@ public class RatingRepository :  IRatingsRepository {
         return ratings;
     }
 
-    public Rating? GetById(Guid id) {
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
-
-        using var cmd = new NpgsqlCommand(
-            "SELECT uuid, media_entry_uuid, user_uuid, stars, comment, created_at, public_visible FROM ratings WHERE uuid = @uuid",
-            connection);
-        cmd.Parameters.AddWithValue("uuid", id);
-
-        using var reader = cmd.ExecuteReader();
-        if (reader.Read())
-        {
-            var rating = new Rating(
-                reader.GetGuid(0),
-                reader.GetGuid(1),
-                reader.GetGuid(2),
-                reader.GetInt32(3),
-                reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                reader.GetDateTime(5),
-                reader.GetBoolean(6)
-            );
-            reader.Close();
-            LoadLikedBy(rating);
-            return rating;
-        }
-
-        return null;
+    public List<Rating> GetAll()
+    {
+        return ExecuteQuery(SelectQuery);
     }
 
-    public List<Rating>? GetByCreator(Guid userid) {
-        var ratings = new List<Rating>();
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
+    public Rating? GetById(Guid id)
+    {
+        var results = ExecuteQuery(
+            $"{SelectQuery} WHERE uuid = @uuid",
+            cmd => cmd.Parameters.AddWithValue("uuid", id)
+        );
+        return results.FirstOrDefault();
+    }
 
-        using var cmd = new NpgsqlCommand(
-            "SELECT uuid, media_entry_uuid, user_uuid, stars, comment, created_at, public_visible FROM ratings WHERE user_uuid = @userid",
-            connection);
-        cmd.Parameters.AddWithValue("userid", userid);
-
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-        {
-            var rating = new Rating(
-                reader.GetGuid(0),
-                reader.GetGuid(1),
-                reader.GetGuid(2),
-                reader.GetInt32(3),
-                reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                reader.GetDateTime(5),
-                reader.GetBoolean(6)
-            );
-            ratings.Add(rating);
-        }
-
-        connection.Close();
-
-        foreach (var rating in ratings)
-        {
-            LoadLikedBy(rating);
-        }
-
-        return ratings;
+    public List<Rating>? GetByCreator(Guid userid)
+    {
+        return ExecuteQuery(
+            $"{SelectQuery} WHERE user_uuid = @userid",
+            cmd => cmd.Parameters.AddWithValue("userid", userid)
+        );
     }
 
     public Guid AddRating(Rating rating) {
@@ -141,74 +104,20 @@ public class RatingRepository :  IRatingsRepository {
         return insertedUuid;
     }
 
-    public List<Rating>? GetByStarsGreaterEqlThan(int stars) {
-        var ratings = new List<Rating>();
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
-
-        using var cmd = new NpgsqlCommand(
-            "SELECT uuid, media_entry_uuid, user_uuid, stars, comment, created_at, public_visible FROM ratings WHERE stars >= @stars",
-            connection);
-        cmd.Parameters.AddWithValue("stars", stars);
-
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-        {
-            var rating = new Rating(
-                reader.GetGuid(0),
-                reader.GetGuid(1),
-                reader.GetGuid(2),
-                reader.GetInt32(3),
-                reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                reader.GetDateTime(5),
-                reader.GetBoolean(6)
-            );
-            ratings.Add(rating);
-        }
-
-        connection.Close();
-
-        foreach (var rating in ratings)
-        {
-            LoadLikedBy(rating);
-        }
-
-        return ratings;
+    public List<Rating>? GetByStarsGreaterEqlThan(int stars)
+    {
+        return ExecuteQuery(
+            $"{SelectQuery} WHERE stars >= @stars",
+            cmd => cmd.Parameters.AddWithValue("stars", stars)
+        );
     }
 
-    public List<Rating>? GetByStarsLowerEqlThan(int stars) {
-        var ratings = new List<Rating>();
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
-
-        using var cmd = new NpgsqlCommand(
-            "SELECT uuid, media_entry_uuid, user_uuid, stars, comment, created_at, public_visible FROM ratings WHERE stars <= @stars",
-            connection);
-        cmd.Parameters.AddWithValue("stars", stars);
-
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-        {
-            var rating = new Rating(
-                reader.GetGuid(0),
-                reader.GetGuid(1),
-                reader.GetGuid(2),
-                reader.GetInt32(3),
-                reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                reader.GetDateTime(5),
-                reader.GetBoolean(6)
-            );
-            ratings.Add(rating);
-        }
-
-        connection.Close();
-
-        foreach (var rating in ratings)
-        {
-            LoadLikedBy(rating);
-        }
-
-        return ratings;
+    public List<Rating>? GetByStarsLowerEqlThan(int stars)
+    {
+        return ExecuteQuery(
+            $"{SelectQuery} WHERE stars <= @stars",
+            cmd => cmd.Parameters.AddWithValue("stars", stars)
+        );
     }
 
     private void LoadLikedBy(Rating rating)
