@@ -56,7 +56,6 @@ namespace MRP
                 new RatingsHTTPEndpoint(ratingRepository, userRepository, mediaRepository, profileRepository, tokenService),
             };
 
-            // Server runs on localhost for local development
             await HttpServer.RunServer("http://127.0.0.1:8080/api/", HttpEndpoints);
 
             return 0;
