@@ -26,8 +26,11 @@ namespace MRP
             //test if user exists
             if (user != null) return Guid.Empty;
 
-            //create new user with temporary profileUuid
-            User newUser = new User(username, password, Guid.Empty);
+            // Hash password before storing
+            string hashedPassword = Services.PasswordHasher.Hash(password);
+
+            //create new user with hashed password and temporary profileUuid
+            User newUser = new User(username, hashedPassword, Guid.Empty);
             
             //save user first (must exist before profile due to foreign key)
             var userUuid = users.AddUser(newUser);
@@ -46,8 +49,8 @@ namespace MRP
             //test if user exists
             if (user == null) return null;
 
-            //check password    TODO HASH
-            if (((User)user).getPassword() == _password)
+            //verify hashed password
+            if (Services.PasswordHasher.Verify(_password, ((User)user).getPassword()))
             {
                 // Update login count
                 var profile = profileRepository.GetByOwnerId(user.uuid);
