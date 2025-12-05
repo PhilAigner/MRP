@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime;
 using Npgsql;
 
@@ -45,9 +45,10 @@ public class RatingRepository :  IRatingsRepository {
 
         connection.Close();
 
-        foreach (var rating in ratings)
+        // Batch load all likes in one query instead of N queries
+        if (ratings.Any())
         {
-            LoadLikedBy(rating);
+            LoadLikedByBatch(ratings);
         }
 
         return ratings;
@@ -75,33 +76,70 @@ public class RatingRepository :  IRatingsRepository {
         );
     }
 
-    public Guid AddRating(Rating rating) {
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
-
-        using var cmd = new NpgsqlCommand(
-            "INSERT INTO ratings (uuid, media_entry_uuid, user_uuid, stars, comment, created_at, public_visible) " +
-            "VALUES (@uuid, @mediaEntry, @user, @stars, @comment, @createdAt, @publicVisible) " +
-            "ON CONFLICT (uuid) DO NOTHING RETURNING uuid",
-            connection);
-
-        cmd.Parameters.AddWithValue("uuid", rating.uuid);
-        cmd.Parameters.AddWithValue("mediaEntry", rating.mediaEntry);
-        cmd.Parameters.AddWithValue("user", rating.user);
-        cmd.Parameters.AddWithValue("stars", rating.stars);
-        cmd.Parameters.AddWithValue("comment", rating.comment ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("createdAt", rating.createdAt);
-        cmd.Parameters.AddWithValue("publicVisible", rating.publicVisible);
-
-        var result = cmd.ExecuteScalar();
-        var insertedUuid = result != null ? (Guid)result : Guid.Empty;
-
-        if (insertedUuid != Guid.Empty && rating.likedBy != null && rating.likedBy.Count > 0)
-        {
-            SaveLikedBy(rating);
+    public Rating? GetByMediaAndUser(Guid mediaId, Guid userId)
+    {
+        var results = ExecuteQuery(
+   $"{SelectQuery} WHERE media_entry_uuid = @mediaId AND user_uuid = @userId",
+  cmd =>
+{
+        cmd.Parameters.AddWithValue("mediaId", mediaId);
+     cmd.Parameters.AddWithValue("userId", userId);
         }
+    );
+    return results.FirstOrDefault();
+}
 
-        return insertedUuid;
+    public List<Rating>? GetByMedia(Guid mediaId)
+    {
+        return ExecuteQuery(
+            $"{SelectQuery} WHERE media_entry_uuid = @mediaId",
+            cmd => cmd.Parameters.AddWithValue("mediaId", mediaId)
+ );
+    }
+
+    public Guid AddRating(Rating rating) {
+        // Validate input
+        if (rating == null)
+            throw new ArgumentNullException(nameof(rating), "Rating cannot be null");
+        
+        if (rating.uuid == Guid.Empty)
+  throw new ArgumentException("Rating UUID cannot be empty", nameof(rating));
+        
+        if (rating.mediaEntry == Guid.Empty)
+            throw new ArgumentException("Media entry UUID cannot be empty", nameof(rating));
+        
+        if (rating.user == Guid.Empty)
+    throw new ArgumentException("User UUID cannot be empty", nameof(rating));
+        
+        if (rating.stars < 1 || rating.stars > 5)
+   throw new ArgumentOutOfRangeException(nameof(rating), "Stars must be between 1 and 5");
+
+    using var connection = _dbConnection.CreateConnection();
+    connection.Open();
+
+    using var cmd = new NpgsqlCommand(
+        "INSERT INTO ratings (uuid, media_entry_uuid, user_uuid, stars, comment, created_at, public_visible) " +
+        "VALUES (@uuid, @mediaEntry, @user, @stars, @comment, @createdAt, @publicVisible) " +
+        "ON CONFLICT (uuid) DO NOTHING RETURNING uuid",
+        connection);
+
+  cmd.Parameters.AddWithValue("uuid", rating.uuid);
+    cmd.Parameters.AddWithValue("mediaEntry", rating.mediaEntry);
+    cmd.Parameters.AddWithValue("user", rating.user);
+    cmd.Parameters.AddWithValue("stars", rating.stars);
+cmd.Parameters.AddWithValue("comment", rating.comment ?? (object)DBNull.Value);
+    cmd.Parameters.AddWithValue("createdAt", rating.createdAt);
+    cmd.Parameters.AddWithValue("publicVisible", rating.publicVisible);
+
+    var result = cmd.ExecuteScalar();
+    var insertedUuid = result != null ? (Guid)result : Guid.Empty;
+
+    if (insertedUuid != Guid.Empty && rating.likedBy != null && rating.likedBy.Count > 0)
+    {
+        SaveLikedBy(rating);
+    }
+
+    return insertedUuid;
     }
 
     public List<Rating>? GetByStarsGreaterEqlThan(int stars)
@@ -120,20 +158,51 @@ public class RatingRepository :  IRatingsRepository {
         );
     }
 
-    private void LoadLikedBy(Rating rating)
+    private void LoadLikedByBatch(List<Rating> ratings)
     {
+        if (!ratings.Any()) return;
+
         using var connection = _dbConnection.CreateConnection();
         connection.Open();
 
-        using var cmd = new NpgsqlCommand(
-            "SELECT user_uuid FROM rating_likes WHERE rating_uuid = @ratingUuid",
-            connection);
-        cmd.Parameters.AddWithValue("ratingUuid", rating.uuid);
+        // Get all rating UUIDs
+        var ratingIds = ratings.Select(r => r.uuid).ToArray();
+        
+        // Create SQL with IN clause for batch loading
+        var placeholders = string.Join(",", ratingIds.Select((_, i) => $"@id{i}"));
+        var query = $"SELECT rating_uuid, user_uuid FROM rating_likes WHERE rating_uuid IN ({placeholders})";
+
+        using var cmd = new NpgsqlCommand(query, connection);
+      
+        // Add parameters
+        for (int i = 0; i < ratingIds.Length; i++)
+        {
+            cmd.Parameters.AddWithValue($"@id{i}", ratingIds[i]);
+        }
 
         using var reader = cmd.ExecuteReader();
+        
+        // Build dictionary for O(1) lookup
+        var likesByRating = new Dictionary<Guid, List<Guid>>();
         while (reader.Read())
         {
-            rating.likedBy.Add(reader.GetGuid(0));
+         var ratingUuid = reader.GetGuid(0);
+            var userUuid = reader.GetGuid(1);
+            
+            if (!likesByRating.ContainsKey(ratingUuid))
+       {
+                likesByRating[ratingUuid] = new List<Guid>();
+            }
+            likesByRating[ratingUuid].Add(userUuid);
+        }
+
+        // Assign likes to ratings
+        foreach (var rating in ratings)
+        {
+            if (likesByRating.TryGetValue(rating.uuid, out var likes))
+      {
+                rating.likedBy.AddRange(likes);
+            }
         }
     }
 
@@ -155,60 +224,88 @@ public class RatingRepository :  IRatingsRepository {
 
     public bool UpdateRating(Rating rating)
     {
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
+        // Validate input
+        if (rating == null)
+            throw new ArgumentNullException(nameof(rating), "Rating cannot be null");
+        
+        if (rating.uuid == Guid.Empty)
+  throw new ArgumentException("Rating UUID cannot be empty", nameof(rating));
+        
+        if (rating.stars < 1 || rating.stars > 5)
+        throw new ArgumentOutOfRangeException(nameof(rating), "Stars must be between 1 and 5");
 
-        using var cmd = new NpgsqlCommand(
-            "UPDATE ratings SET stars = @stars, comment = @comment, public_visible = @publicVisible " +
-            "WHERE uuid = @uuid",
-            connection);
+    using var connection = _dbConnection.CreateConnection();
+    connection.Open();
 
-        cmd.Parameters.AddWithValue("uuid", rating.uuid);
-        cmd.Parameters.AddWithValue("stars", rating.stars);
-        cmd.Parameters.AddWithValue("comment", rating.comment ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("publicVisible", rating.publicVisible);
+    using var cmd = new NpgsqlCommand(
+        "UPDATE ratings SET stars = @stars, comment = @comment, public_visible = @publicVisible " +
+        "WHERE uuid = @uuid",
+  connection);
 
-        var rowsAffected = cmd.ExecuteNonQuery();
-        return rowsAffected > 0;
+    cmd.Parameters.AddWithValue("uuid", rating.uuid);
+    cmd.Parameters.AddWithValue("stars", rating.stars);
+    cmd.Parameters.AddWithValue("comment", rating.comment ?? (object)DBNull.Value);
+    cmd.Parameters.AddWithValue("publicVisible", rating.publicVisible);
+
+    var rowsAffected = cmd.ExecuteNonQuery();
+    return rowsAffected > 0;
     }
 
     public bool DeleteRating(Guid id)
     {
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
+        // Validate input
+    if (id == Guid.Empty)
+  throw new ArgumentException("Rating ID cannot be empty", nameof(id));
 
-        // Delete rating_likes first (if not using CASCADE)
-        using var deleteLikesCmd = new NpgsqlCommand(
-            "DELETE FROM rating_likes WHERE rating_uuid = @uuid",
-            connection);
-        deleteLikesCmd.Parameters.AddWithValue("uuid", id);
-        deleteLikesCmd.ExecuteNonQuery();
+    using var connection = _dbConnection.CreateConnection();
+    connection.Open();
 
-        // Delete rating
-        using var cmd = new NpgsqlCommand("DELETE FROM ratings WHERE uuid = @uuid", connection);
-        cmd.Parameters.AddWithValue("uuid", id);
+    // Delete rating_likes first (if not using CASCADE)
+    using var deleteLikesCmd = new NpgsqlCommand(
+        "DELETE FROM rating_likes WHERE rating_uuid = @uuid",
+connection);
+    deleteLikesCmd.Parameters.AddWithValue("uuid", id);
+    deleteLikesCmd.ExecuteNonQuery();
 
-        var rowsAffected = cmd.ExecuteNonQuery();
-        return rowsAffected > 0;
+    // Delete rating
+    using var cmd = new NpgsqlCommand("DELETE FROM ratings WHERE uuid = @uuid", connection);
+    cmd.Parameters.AddWithValue("uuid", id);
+
+    var rowsAffected = cmd.ExecuteNonQuery();
+    return rowsAffected > 0;
     }
 
     public bool AddLike(Guid ratingId, Guid userId)
     {
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
+        // Validate input
+        if (ratingId == Guid.Empty)
+      throw new ArgumentException("Rating ID cannot be empty", nameof(ratingId));
+    
+  if (userId == Guid.Empty)
+     throw new ArgumentException("User ID cannot be empty", nameof(userId));
 
-        using var cmd = new NpgsqlCommand(
-            "INSERT INTO rating_likes (rating_uuid, user_uuid) VALUES (@ratingUuid, @userUuid) ON CONFLICT DO NOTHING",
-            connection);
-        cmd.Parameters.AddWithValue("ratingUuid", ratingId);
-        cmd.Parameters.AddWithValue("userUuid", userId);
+    using var connection = _dbConnection.CreateConnection();
+    connection.Open();
 
-        var rowsAffected = cmd.ExecuteNonQuery();
-        return rowsAffected > 0;
+    using var cmd = new NpgsqlCommand(
+        "INSERT INTO rating_likes (rating_uuid, user_uuid) VALUES (@ratingUuid, @userUuid) ON CONFLICT DO NOTHING",
+        connection);
+    cmd.Parameters.AddWithValue("ratingUuid", ratingId);
+    cmd.Parameters.AddWithValue("userUuid", userId);
+
+    var rowsAffected = cmd.ExecuteNonQuery();
+    return rowsAffected > 0;
     }
 
     public bool RemoveLike(Guid ratingId, Guid userId)
     {
+        // Validate input
+        if (ratingId == Guid.Empty)
+            throw new ArgumentException("Rating ID cannot be empty", nameof(ratingId));
+    
+        if (userId == Guid.Empty)
+            throw new ArgumentException("User ID cannot be empty", nameof(userId));
+
         using var connection = _dbConnection.CreateConnection();
         connection.Open();
 

@@ -132,10 +132,7 @@ namespace MRP
                         }
 
                         // Get the created rating to return its ID
-                        var createdRating = _ratingRepository.GetAll()
-                            .FirstOrDefault(r => r.mediaEntry == mediaId && r.user == userGuid);
-                        
-
+                        var createdRating = _ratingRepository.GetByMediaAndUser(mediaId, userGuid);
 
                         await HttpServer.Json(context.Response, 201, new { message = "Rating created", uuid = createdRating?.uuid ?? Guid.Empty });
                         return;
@@ -269,7 +266,7 @@ namespace MRP
                 var mediaq = req.QueryString["media"];
                 if (!string.IsNullOrWhiteSpace(mediaq) && Guid.TryParse(mediaq, out var mediaId))
                 {
-                    var list = _ratingRepository.GetAll().Where(r => r.mediaEntry == mediaId).ToList();
+                    var list = _ratingRepository.GetByMedia(mediaId) ?? new List<Rating>();
                     await HttpServer.Json(context.Response, 200, list);
                     return;
                 }
@@ -363,10 +360,7 @@ namespace MRP
                     }
 
                     // Get the created rating to return its ID
-                    var createdRating = _ratingRepository.GetAll()
-                        .FirstOrDefault(r => r.mediaEntry == mediaGuid && r.user == userGuid);
-                    
-
+                    var createdRating = _ratingRepository.GetByMediaAndUser(mediaGuid, userGuid);
 
                     await HttpServer.Json(context.Response, 201, new { message = "Rating created", uuid = createdRating?.uuid ?? Guid.Empty });
                     return;

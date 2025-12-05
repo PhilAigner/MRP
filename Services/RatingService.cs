@@ -27,7 +27,7 @@ namespace MRP
             if (existingEntry == null) return false;
             
             //check if user has already rated this media entry
-            var existingRating = ratings.GetAll().FirstOrDefault(r => r.mediaEntry == mediaId && r.user == userId);
+            var existingRating = ratings.GetByMediaAndUser(mediaId, userId);
             if (existingRating != null)
             {
                 //update existing rating
@@ -60,7 +60,7 @@ namespace MRP
             if (existingEntry == null) return false;
             
             //check if user has already rated this media entry
-            var existingRating = ratings.GetAll().FirstOrDefault(r => r.mediaEntry == mediaId && r.user == userId);
+            var existingRating = ratings.GetByMediaAndUser(mediaId, userId);
             bool hadComment = false;
             
             if (existingRating != null)
@@ -109,7 +109,7 @@ namespace MRP
             if (existingEntry == null) return false;
             
             //check if user has already rated this media entry
-            var existingRating = ratings.GetAll().FirstOrDefault(r => r.mediaEntry == mediaId && r.user == userId);
+            var existingRating = ratings.GetByMediaAndUser(mediaId, userId);
             if (existingRating == null) return false;
             
             // Update profile statistics
@@ -144,7 +144,7 @@ namespace MRP
             if (existingEntry == null) return false;
             
             //check if user has already rated this media entry
-            var existingRating = ratings.GetAll().FirstOrDefault(r => r.mediaEntry == mediaId && r.user == userId);
+            var existingRating = ratings.GetByMediaAndUser(mediaId, userId);
             if (existingRating == null) return false;
             
             bool hadComment = !string.IsNullOrWhiteSpace(existingRating.comment);
@@ -217,17 +217,7 @@ namespace MRP
             existingRating.publicVisible = true;
             
             // Update in database
-            bool updated = ratings.UpdateRating(existingRating);
-            if (!updated) return false;
-
-            // Add rating to media entry's ratings list if not already present
-            // ( so that it can be shown directly in the media entry details )
-            if (!mediaEntry.ratings.Any(r => r.uuid == ratingId))
-            {
-                mediaEntry.ratings.Add(existingRating);
-            }
-            
-            return true;
+            return ratings.UpdateRating(existingRating);
         }
     }
 }

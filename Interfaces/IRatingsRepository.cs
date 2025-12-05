@@ -10,6 +10,10 @@ public interface IRatingsRepository
     public Rating? GetById(Guid id);
 
     public List<Rating>? GetByCreator(Guid userid);
+    
+    public Rating? GetByMediaAndUser(Guid mediaId, Guid userId);
+    
+    public List<Rating>? GetByMedia(Guid mediaId);
 
     public Guid AddRating(Rating rating);
 
