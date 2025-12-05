@@ -55,19 +55,6 @@ public class MediaRepository :  IMediaRepository {
             }
         }
 
-        // Calculate average scores for all loaded media entries
-        if (mediaEntries.Any())
-        {
-            // Load ratings for all media entries in one batch
-            var mediaIds = mediaEntries.Select(m => m.uuid).ToList();
-            var allRatings = LoadRatingsForMedia(mediaIds);
-            
-            foreach (var media in mediaEntries)
-            {
-                var relevantRatings = allRatings.Where(r => r.mediaEntry == media.uuid).ToList();
-                media.CalculateAverageScore(relevantRatings);
-            }
-        }
 
         return mediaEntries;
     }
