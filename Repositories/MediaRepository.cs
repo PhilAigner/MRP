@@ -1,4 +1,4 @@
-﻿using Npgsql;
+using Npgsql;
 using System.Data;
 
 namespace MRP;
@@ -55,7 +55,59 @@ public class MediaRepository :  IMediaRepository {
             }
         }
 
+        // Calculate average scores for all loaded media entries
+        if (mediaEntries.Any())
+        {
+            // Load ratings for all media entries in one batch
+            var mediaIds = mediaEntries.Select(m => m.uuid).ToList();
+            var allRatings = LoadRatingsForMedia(mediaIds);
+            
+            foreach (var media in mediaEntries)
+            {
+                var relevantRatings = allRatings.Where(r => r.mediaEntry == media.uuid).ToList();
+                media.CalculateAverageScore(relevantRatings);
+            }
+        }
+
         return mediaEntries;
+    }
+
+    private List<Rating> LoadRatingsForMedia(List<Guid> mediaIds)
+    {
+        if (!mediaIds.Any()) return new List<Rating>();
+
+        // Use RatingRepository to load all ratings for the media IDs
+        // For now, we'll use a simple approach - in a real scenario, you'd inject RatingRepository
+        var ratings = new List<Rating>();
+        
+        using var connection = _dbConnection.CreateConnection();
+        connection.Open();
+
+        // Build IN clause for batch loading
+        var placeholders = string.Join(",", mediaIds.Select((_, i) => $"@id{i}"));
+        var query = $"SELECT uuid, media_entry_uuid, user_uuid, stars, comment, created_at, public_visible FROM ratings WHERE media_entry_uuid IN ({placeholders}) AND public_visible = true";
+
+        using var cmd = new NpgsqlCommand(query, connection);
+        for (int i = 0; i < mediaIds.Count; i++)
+        {
+            cmd.Parameters.AddWithValue($"@id{i}", mediaIds[i]);
+        }
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            ratings.Add(new Rating(
+                reader.GetGuid(0),
+                reader.GetGuid(1),
+                reader.GetGuid(2),
+                reader.GetInt32(3),
+                reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+                reader.GetDateTime(5),
+                reader.GetBoolean(6)
+            ));
+        }
+
+        return ratings;
     }
 
     public List<MediaEntry> GetAll()
@@ -65,11 +117,25 @@ public class MediaRepository :  IMediaRepository {
 
     public MediaEntry? GetMediaById(Guid id)
     {
-        var results = ExecuteQuery(
-            $"{SelectQuery} WHERE uuid = @uuid",
-            cmd => cmd.Parameters.AddWithValue("uuid", id)
-        );
-        return results.FirstOrDefault();
+        // Validate input
+        if (id == Guid.Empty)
+          throw new ArgumentException("Media ID cannot be empty", nameof(id));
+
+        try
+        {
+       var results = ExecuteQuery(
+        $"{SelectQuery} WHERE uuid = @uuid",
+         cmd => cmd.Parameters.AddWithValue("uuid", id)
+         );
+       return results.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+         throw new DatabaseException(
+         "Failed to retrieve media entry by ID",
+           ex
+          );
+        }
     }
 
     public List<MediaEntry>? GetMediaByTitle(string title)
@@ -89,61 +155,151 @@ public class MediaRepository :  IMediaRepository {
     }
 
     public Guid AddMedia(MediaEntry mediaEntry) {
+        // Validate input
+        if (mediaEntry == null)
+  throw new ArgumentNullException(nameof(mediaEntry), "Media entry cannot be null");
+    
+  if (mediaEntry.uuid == Guid.Empty)
+        throw new ArgumentException("Media UUID cannot be empty", nameof(mediaEntry));
+    
+    if (string.IsNullOrWhiteSpace(mediaEntry.title))
+        throw new ArgumentException("Title cannot be empty", nameof(mediaEntry));
+    
+    if (mediaEntry.createdBy == null || mediaEntry.createdBy.uuid == Guid.Empty)
+        throw new ArgumentException("Creator user cannot be null or empty", nameof(mediaEntry));
+    
+ if (mediaEntry.releaseYear < 1800 || mediaEntry.releaseYear > 2200)
+        throw new ArgumentOutOfRangeException(nameof(mediaEntry), "Release year must be between 1800 and 2200");
+
+    try
+    {
         using var connection = _dbConnection.CreateConnection();
         connection.Open();
 
-        using var cmd = new NpgsqlCommand(
-            "INSERT INTO media_entries (uuid, title, description, media_type, release_year, age_restriction, genre, created_at, created_by_uuid) " +
-            "VALUES (@uuid, @title, @description, @mediaType, @releaseYear, @ageRestriction, @genre, @createdAt, @createdBy) " +
-            "ON CONFLICT (uuid) DO NOTHING RETURNING uuid",
+    using var cmd = new NpgsqlCommand(
+     "INSERT INTO media_entries (uuid, title, description, media_type, release_year, age_restriction, genre, created_at, created_by_uuid) " +
+   "VALUES (@uuid, @title, @description, @mediaType, @releaseYear, @ageRestriction, @genre, @createdAt, @createdBy) " +
+         "ON CONFLICT (uuid) DO NOTHING RETURNING uuid",
             connection);
 
         cmd.Parameters.AddWithValue("uuid", mediaEntry.uuid);
         cmd.Parameters.AddWithValue("title", mediaEntry.title);
-        cmd.Parameters.AddWithValue("description", mediaEntry.description);
+        cmd.Parameters.AddWithValue("description", mediaEntry.description ?? string.Empty);
         cmd.Parameters.AddWithValue("mediaType", mediaEntry.mediaType.ToString());
         cmd.Parameters.AddWithValue("releaseYear", mediaEntry.releaseYear);
         cmd.Parameters.AddWithValue("ageRestriction", mediaEntry.ageRestriction.ToString());
-        cmd.Parameters.AddWithValue("genre", mediaEntry.genre);
-        cmd.Parameters.AddWithValue("createdAt", mediaEntry.createdAt);
+    cmd.Parameters.AddWithValue("genre", mediaEntry.genre ?? string.Empty);
+     cmd.Parameters.AddWithValue("createdAt", mediaEntry.createdAt);
         cmd.Parameters.AddWithValue("createdBy", mediaEntry.createdBy.uuid);
 
-        var result = cmd.ExecuteScalar();
+var result = cmd.ExecuteScalar();
         return result != null ? (Guid)result : Guid.Empty;
     }
+    catch (NpgsqlException ex)
+    {
+   throw new DatabaseException(
+    "Failed to add media entry to database",
+            "INSERT",
+            "media_entries",
+  ex
+        );
+    }
+    catch (Exception ex)
+    {
+        throw new DatabaseException(
+"Unexpected error while adding media entry",
+         ex
+        );
+    }
+}
 
     public bool UpdateMedia(MediaEntry mediaEntry)
     {
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
+        // Validate input
+if (mediaEntry == null)
+  throw new ArgumentNullException(nameof(mediaEntry), "Media entry cannot be null");
+    
+    if (mediaEntry.uuid == Guid.Empty)
+ throw new ArgumentException("Media UUID cannot be empty", nameof(mediaEntry));
+    
+    if (string.IsNullOrWhiteSpace(mediaEntry.title))
+   throw new ArgumentException("Title cannot be empty", nameof(mediaEntry));
+    
+ if (mediaEntry.releaseYear < 1800 || mediaEntry.releaseYear > 2200)
+  throw new ArgumentOutOfRangeException(nameof(mediaEntry), "Release year must be between 1800 and 2200");
 
-        using var cmd = new NpgsqlCommand(
+    try
+    {
+   using var connection = _dbConnection.CreateConnection();
+    connection.Open();
+
+   using var cmd = new NpgsqlCommand(
             "UPDATE media_entries SET title = @title, description = @description, media_type = @mediaType, " +
-            "release_year = @releaseYear, age_restriction = @ageRestriction, genre = @genre " +
-            "WHERE uuid = @uuid",
+    "release_year = @releaseYear, age_restriction = @ageRestriction, genre = @genre " +
+       "WHERE uuid = @uuid",
             connection);
 
-        cmd.Parameters.AddWithValue("uuid", mediaEntry.uuid);
+ cmd.Parameters.AddWithValue("uuid", mediaEntry.uuid);
         cmd.Parameters.AddWithValue("title", mediaEntry.title);
-        cmd.Parameters.AddWithValue("description", mediaEntry.description);
+        cmd.Parameters.AddWithValue("description", mediaEntry.description ?? string.Empty);
         cmd.Parameters.AddWithValue("mediaType", mediaEntry.mediaType.ToString());
         cmd.Parameters.AddWithValue("releaseYear", mediaEntry.releaseYear);
-        cmd.Parameters.AddWithValue("ageRestriction", mediaEntry.ageRestriction.ToString());
-        cmd.Parameters.AddWithValue("genre", mediaEntry.genre);
+     cmd.Parameters.AddWithValue("ageRestriction", mediaEntry.ageRestriction.ToString());
+        cmd.Parameters.AddWithValue("genre", mediaEntry.genre ?? string.Empty);
 
         var rowsAffected = cmd.ExecuteNonQuery();
         return rowsAffected > 0;
+ }
+    catch (NpgsqlException ex)
+    {
+        throw new DatabaseException(
+  "Failed to update media entry in database",
+        "UPDATE",
+   "media_entries",
+         ex
+      );
     }
+    catch (Exception ex)
+    {
+    throw new DatabaseException(
+         "Unexpected error while updating media entry",
+     ex
+        );
+    }
+}
 
     public bool DeleteMedia(Guid id)
     {
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
+        // Validate input
+      if (id == Guid.Empty)
+ throw new ArgumentException("Media ID cannot be empty", nameof(id));
 
-        using var cmd = new NpgsqlCommand("DELETE FROM media_entries WHERE uuid = @uuid", connection);
-        cmd.Parameters.AddWithValue("uuid", id);
+      try
+        {
+            using var connection = _dbConnection.CreateConnection();
+      connection.Open();
 
-        var rowsAffected = cmd.ExecuteNonQuery();
-        return rowsAffected > 0;
+            using var cmd = new NpgsqlCommand("DELETE FROM media_entries WHERE uuid = @uuid", connection);
+     cmd.Parameters.AddWithValue("uuid", id);
+
+         var rowsAffected = cmd.ExecuteNonQuery();
+            return rowsAffected > 0;
+        }
+        catch (NpgsqlException ex)
+        {
+            throw new DatabaseException(
+          "Failed to delete media entry from database",
+            "DELETE",
+        "media_entries",
+          ex
+ );
+        }
+        catch (Exception ex)
+        {
+       throw new DatabaseException(
+        "Unexpected error while deleting media entry",
+           ex
+            );
+        }
     }
 }

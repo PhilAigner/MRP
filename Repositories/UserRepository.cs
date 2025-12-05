@@ -1,4 +1,4 @@
-﻿using Npgsql;
+using Npgsql;
 
 namespace MRP;
 
@@ -39,67 +39,145 @@ public class UserRepository : IUserRepository {
 
     public User? GetUserById(Guid id)
     {
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
+        // Validate input
+        if (id == Guid.Empty)
+  throw new ArgumentException("User ID cannot be empty", nameof(id));
 
-        using var cmd = new NpgsqlCommand("SELECT uuid, username, password, created FROM users WHERE uuid = @uuid", connection);
-        cmd.Parameters.AddWithValue("uuid", id);
-
-        using var reader = cmd.ExecuteReader();
-        if (reader.Read())
+        try
         {
-            var profileUuid = _profileRepository.GetByOwnerId(reader.GetGuid(0))?.uuid ?? Guid.Empty;
-            return new User(
-                reader.GetGuid(0),
-                reader.GetString(1),
-                reader.GetString(2),
-                reader.GetDateTime(3),
-                profileUuid
-            );
-        }
+            using var connection = _dbConnection.CreateConnection();
+  connection.Open();
 
-        return null;
+using var cmd = new NpgsqlCommand("SELECT uuid, username, password, created FROM users WHERE uuid = @uuid", connection);
+                cmd.Parameters.AddWithValue("uuid", id);
+
+     using var reader = cmd.ExecuteReader();
+    if (reader.Read())
+  {
+       var profileUuid = _profileRepository.GetByOwnerId(reader.GetGuid(0))?.uuid ?? Guid.Empty;
+                return new User(
+                    reader.GetGuid(0),
+               reader.GetString(1),
+          reader.GetString(2),
+              reader.GetDateTime(3),
+    profileUuid
+      );
+    }
+
+            return null;
+        }
+        catch (NpgsqlException ex)
+        {
+     throw new DatabaseException(
+       "Failed to retrieve user by ID",
+    "SELECT",
+    "users",
+          ex
+ );
+        }
+        catch (Exception ex)
+        {
+  throw new DatabaseException(
+      "Unexpected error while retrieving user",
+   ex
+    );
+        }
     }
 
     public Guid AddUser(User user)
     {
-        using var connection = _dbConnection.CreateConnection();
-        connection.Open();
+        // Validate input
+        if (user == null)
+            throw new ArgumentNullException(nameof(user), "User cannot be null");
+        
+        if (user.uuid == Guid.Empty)
+       throw new ArgumentException("User UUID cannot be empty", nameof(user));
+        
+        if (string.IsNullOrWhiteSpace(user.username))
+            throw new ArgumentException("Username cannot be empty", nameof(user));
+        
+        if (string.IsNullOrWhiteSpace(user.getPassword()))
+      throw new ArgumentException("Password cannot be empty", nameof(user));
 
-        using var cmd = new NpgsqlCommand(
-            "INSERT INTO users (uuid, username, password, created) VALUES (@uuid, @username, @password, @created) ON CONFLICT (uuid) DO NOTHING RETURNING uuid",
-            connection);
+        try
+        {
+    using var connection = _dbConnection.CreateConnection();
+     connection.Open();
 
-        cmd.Parameters.AddWithValue("uuid", user.uuid);
-        cmd.Parameters.AddWithValue("username", user.username);
-        cmd.Parameters.AddWithValue("password", user.getPassword());
-        cmd.Parameters.AddWithValue("created", user.created);
+      using var cmd = new NpgsqlCommand(
+      "INSERT INTO users (uuid, username, password, created) VALUES (@uuid, @username, @password, @created) ON CONFLICT (uuid) DO NOTHING RETURNING uuid",
+        connection);
 
-        var result = cmd.ExecuteScalar();
-        return result != null ? (Guid)result : Guid.Empty;
+            cmd.Parameters.AddWithValue("uuid", user.uuid);
+      cmd.Parameters.AddWithValue("username", user.username);
+            cmd.Parameters.AddWithValue("password", user.getPassword());
+    cmd.Parameters.AddWithValue("created", user.created);
+
+            var result = cmd.ExecuteScalar();
+       return result != null ? (Guid)result : Guid.Empty;
+  }
+        catch (NpgsqlException ex)
+        {
+            throw new DatabaseException(
+ "Failed to add user to database",
+     "INSERT",
+"users",
+      ex
+            );
+        }
+        catch (Exception ex)
+        {
+      throw new DatabaseException(
+         "Unexpected error while adding user",
+      ex
+       );
+        }
     }
 
     internal User? GetUserByUsername(string username)
     {
+        // Validate input
+        if (string.IsNullOrWhiteSpace(username))
+   throw new ArgumentException("Username cannot be empty", nameof(username));
+
+  try
+    {
         using var connection = _dbConnection.CreateConnection();
-        connection.Open();
+  connection.Open();
 
         using var cmd = new NpgsqlCommand("SELECT uuid, username, password, created FROM users WHERE username = @username", connection);
-        cmd.Parameters.AddWithValue("username", username);
+ cmd.Parameters.AddWithValue("username", username);
 
         using var reader = cmd.ExecuteReader();
-        if (reader.Read())
+  if (reader.Read())
         {
-            var profileUuid = _profileRepository.GetByOwnerId(reader.GetGuid(0))?.uuid ?? Guid.Empty;
-            return new User(
-                reader.GetGuid(0),
-                reader.GetString(1),
-                reader.GetString(2),
-                reader.GetDateTime(3),
-                profileUuid
-            );
-        }
+      var profileUuid = _profileRepository.GetByOwnerId(reader.GetGuid(0))?.uuid ?? Guid.Empty;
+      return new User(
+   reader.GetGuid(0),
+reader.GetString(1),
+          reader.GetString(2),
+   reader.GetDateTime(3),
+      profileUuid
+    );
+   }
 
-        return null;
+      return null;
     }
+    catch (NpgsqlException ex)
+    {
+        throw new DatabaseException(
+ "Failed to retrieve user by username",
+   "SELECT",
+       "users",
+       ex
+  );
+    }
+    catch (Exception ex)
+    {
+     throw new DatabaseException(
+"Unexpected error while retrieving user by username",
+  ex
+     );
+    }
+}
 }
