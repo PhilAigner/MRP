@@ -232,12 +232,13 @@ namespace MRP
                         if (!string.IsNullOrWhiteSpace(dto.ageRestriction) && Enum.TryParse<EFSK>(dto.ageRestriction, true, out var fsk)) existing.ageRestriction = fsk;
                     }
 
-                    //TODO SQL REQUEST TO UPDATE MEDIA ENTRY IN DATABASE
-                    // mthod in media repo todo
-                    //update repository
-                    var list = _mediaRepository.GetAll();
-                    list.RemoveAll(m => m.uuid == existing.uuid);
-                    list.Add(existing);
+                    // Update in database
+                    bool updated = _mediaRepository.UpdateMedia(existing);
+                    if (!updated)
+                    {
+                        await HttpServer.Json(context.Response, 500, new { error = "Failed to update media in database" });
+                        return;
+                    }
 
                     await HttpServer.Json(context.Response, 200, new { message = "Media updated" });
                 }
@@ -288,7 +289,21 @@ namespace MRP
                     return;
                 }
 
-                _mediaService.deleteMediaEntry(id);
+                // Delete from database using repository
+                bool deleted = _mediaRepository.DeleteMedia(id);
+                if (!deleted)
+                {
+                    await HttpServer.Json(context.Response, 500, new { error = "Failed to delete media from database" });
+                    return;
+                }
+                
+                // Update profile statistics
+                var profile = _profileRepository.GetByOwnerId(existing.createdBy.uuid);
+                if (profile != null && profile.numberOfMediaAdded > 0)
+                {
+                    profile.numberOfMediaAdded--;
+                    _profileRepository.UpdateProfile(profile);
+                }
 
                 await HttpServer.Json(context.Response, 204, null);
                 return;

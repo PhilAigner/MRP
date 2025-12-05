@@ -31,7 +31,8 @@ namespace MRP
             if (existingRating != null)
             {
                 //update existing rating
-                ratings.GetAll().Remove(existingRating);
+                existingRating.stars = stars;
+                ratings.UpdateRating(existingRating);
             }
             else
             {
@@ -40,11 +41,12 @@ namespace MRP
                 if (profile != null)
                 {
                     profile.numberOfRatingsGiven++;
+                    profiles.UpdateProfile(profile);
                 }
+                
+                //add new rating
+                ratings.AddRating(new Rating(mediaId, userId, stars));
             }
-            
-            //add new rating
-            ratings.AddRating(new Rating(mediaId, userId, stars));
             
             // Update favorite genre and media type
             statisticsService.UpdateFavorites(userId);
@@ -64,8 +66,11 @@ namespace MRP
             if (existingRating != null)
             {
                 hadComment = !string.IsNullOrWhiteSpace(existingRating.comment);
-                //update existing rating
-                ratings.GetAll().Remove(existingRating);
+                
+                // Update existing rating
+                existingRating.stars = stars;
+                existingRating.comment = comment;
+                ratings.UpdateRating(existingRating);
             }
             else
             {
@@ -74,7 +79,11 @@ namespace MRP
                 if (profile != null)
                 {
                     profile.numberOfRatingsGiven++;
+                    profiles.UpdateProfile(profile);
                 }
+                
+                //add new rating
+                ratings.AddRating(new Rating(mediaId, userId, stars, comment));
             }
             
             // Update review count if comment was added or changed
@@ -84,11 +93,9 @@ namespace MRP
                 if (profile != null)
                 {
                     profile.numberOfReviewsWritten++;
+                    profiles.UpdateProfile(profile);
                 }
             }
-            
-            //add new rating
-            ratings.AddRating(new Rating(mediaId, userId, stars, comment));
             
             // Update favorite genre and media type
             statisticsService.UpdateFavorites(userId);
@@ -118,10 +125,12 @@ namespace MRP
                 {
                     profile.numberOfReviewsWritten--;
                 }
+                
+                profiles.UpdateProfile(profile);
             }
             
-            //remove existing rating
-            ratings.GetAll().Remove(existingRating);
+            //remove existing rating from database
+            ratings.DeleteRating(existingRating.uuid);
             
             // Update favorite genre and media type
             statisticsService.UpdateFavorites(userId);
@@ -141,8 +150,10 @@ namespace MRP
             bool hadComment = !string.IsNullOrWhiteSpace(existingRating.comment);
             bool hasComment = !string.IsNullOrWhiteSpace(comment);
             
-            //remove existing rating
-            ratings.GetAll().Remove(existingRating);
+            // Update existing rating
+            existingRating.stars = stars;
+            existingRating.comment = comment;
+            ratings.UpdateRating(existingRating);
             
             // Update review count if comment status changed
             var profile = profiles.GetByOwnerId(userId);
@@ -161,10 +172,9 @@ namespace MRP
                         profile.numberOfReviewsWritten--;
                     }
                 }
+                
+                profiles.UpdateProfile(profile);
             }
-            
-            //add new rating
-            ratings.AddRating(new Rating(mediaId, userId, stars, comment));
             
             // Update favorite genre and media type
             statisticsService.UpdateFavorites(userId);
@@ -177,8 +187,9 @@ namespace MRP
             var existingRating = ratings.GetById(ratingId);
             if (existingRating == null) return false;
             if (existingRating.likedBy.Contains(userId)) return false;      //user has already liked this rating
-            existingRating.likedBy.Add(userId);
-            return true;
+            
+            // Add like to database
+            return ratings.AddLike(ratingId, userId);
         }
 
         public bool removeLikeFromRating(Guid ratingId, Guid userId)
@@ -186,8 +197,9 @@ namespace MRP
             var existingRating = ratings.GetById(ratingId);
             if (existingRating == null) return false;
             if (!existingRating.likedBy.Contains(userId)) return false;     //user has not liked this rating
-            existingRating.likedBy.Remove(userId);
-            return true;
+            
+            // Remove like from database
+            return ratings.RemoveLike(ratingId, userId);
         }
 
         public bool approveRating(Guid ratingId, Guid approverId)
@@ -203,6 +215,10 @@ namespace MRP
             
             // Make the rating publicly visible
             existingRating.publicVisible = true;
+            
+            // Update in database
+            bool updated = ratings.UpdateRating(existingRating);
+            if (!updated) return false;
 
             // Add rating to media entry's ratings list if not already present
             // ( so that it can be shown directly in the media entry details )

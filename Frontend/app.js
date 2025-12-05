@@ -301,17 +301,20 @@ async function getMyProfile() {
         return;
     }
     
-    // Set the input field to the current user's ID and get the profile
-    document.getElementById('profile-userid').value = savedData.userId;
-    await getProfile();
+    // Use the logged-in user's ID directly
+    const result = await apiCall(`/users/${savedData.userId}/profile`, 'GET', null, true);
+    displayResponse('profile-response', result.status, result.data, result.ok);
+    
+    if (result.ok && result.data.user) {
+        savedData.lastViewedUserId = result.data.user;
+        saveData();
+    }
 }
 
 async function getProfile() {
-    // If no user ID is specified, use the logged-in user's ID
-    let userId = document.getElementById('profile-userid').value || savedData.userId;
-    
-    if (!userId) {
-        alert('Please enter a User ID or log in first');
+    // Always use the logged-in user's ID
+    if (!savedData.userId) {
+        alert('Please log in first to view your profile');
         return;
     }
     
@@ -320,11 +323,10 @@ async function getProfile() {
         return;
     }
     
-    // Use the correct endpoint format: /api/users/{userId}/profile
-    const result = await apiCall(`/users/${userId}/profile`, 'GET', null, true);
+    // Use the logged-in user's ID directly
+    const result = await apiCall(`/users/${savedData.userId}/profile`, 'GET', null, true);
     displayResponse('profile-response', result.status, result.data, result.ok);
     
-    // Save the last viewed user ID
     if (result.ok && result.data.user) {
         savedData.lastViewedUserId = result.data.user;
         saveData();
@@ -333,15 +335,6 @@ async function getProfile() {
 
 function showUpdateProfile() {
     document.getElementById('update-profile-form').classList.toggle('hidden');
-}
-
-function useSavedUserId() {
-    const userId = savedData.lastViewedUserId || savedData.userId;
-    if (userId) {
-        document.getElementById('profile-userid').value = userId;
-    } else {
-        alert('No saved User ID found. Please register a user first.');
-    }
 }
 
 async function updateProfile() {
@@ -386,8 +379,7 @@ async function updateProfile() {
             document.getElementById('profile-aboutme').value = '';
             // Hide the update form
             document.getElementById('update-profile-form').classList.add('hidden');
-            // Set the profile input to the current user and reload profile to show changes
-            document.getElementById('profile-userid').value = userId;
+            // Reload profile to show changes
             setTimeout(() => getProfile(), 500);
         } else {
             alert(`Failed to update profile: ${result.data.error || 'Unknown error'}`);
@@ -402,18 +394,23 @@ async function updateProfile() {
 // ============= MEDIA FUNCTIONS =============
 
 async function createMedia() {
-    const title = document.getElementById('media-title').value;
-    const description = document.getElementById('media-description').value;
-    const mediaType = document.getElementById('media-type').value;
-    const releaseYear = parseInt(document.getElementById('media-year').value);
-    const ageRestriction = document.getElementById('media-fsk').value;
-    const genre = document.getElementById('media-genre').value;
-    let createdBy = document.getElementById('media-creator').value || savedData.userId;
+const title = document.getElementById('media-title').value;
+const description = document.getElementById('media-description').value;
+const mediaType = document.getElementById('media-type').value;
+const releaseYear = parseInt(document.getElementById('media-year').value);
+const ageRestriction = document.getElementById('media-fsk').value;
+const genre = document.getElementById('media-genre').value;
+const createdBy = savedData.userId; // Always use logged-in user
     
-    if (!title || !createdBy) {
-        alert('Please fill in at least Title and Creator ID (or register a user first)');
-        return;
-    }
+if (!title) {
+    alert('Please fill in at least Title');
+    return;
+}
+    
+if (!createdBy) {
+    alert('Please log in first to create media entries');
+    return;
+}
     
     if (!savedData.token) {
         alert('Please login first to create media entries');
@@ -458,8 +455,8 @@ async function createTestMediaEntries() {
             return;
         }
 
-        // Get value from the Creator input field or use saved ID
-        let creatorId = document.getElementById('media-creator').value || savedData.userId;
+        // Use saved ID from logged-in user
+        let creatorId = savedData.userId;
         
         // Show immediate feedback
         const responseElement = document.getElementById('media-create-response');
@@ -752,16 +749,21 @@ async function deleteMedia() {
 // ============= RATING FUNCTIONS =============
 
 async function createRating() {
-    const mediaEntry = document.getElementById('rating-media-id').value;
-    let user = document.getElementById('rating-user-id').value || savedData.userId;
-    const stars = parseInt(document.getElementById('rating-stars').value);
-    const comment = document.getElementById('rating-comment').value;
-    const publicVisible = document.getElementById('rating-public').checked;
+const mediaEntry = document.getElementById('rating-media-id').value;
+const user = savedData.userId; // Always use logged-in user
+const stars = parseInt(document.getElementById('rating-stars').value);
+const comment = document.getElementById('rating-comment').value;
+const publicVisible = document.getElementById('rating-public').checked;
     
-    if (!mediaEntry || !user || !stars) {
-        alert('Please fill in Media ID, User ID, and Stars');
-        return;
-    }
+if (!mediaEntry || !stars) {
+    alert('Please fill in Media ID and Stars');
+    return;
+}
+    
+if (!user) {
+    alert('Please log in first to create ratings');
+    return;
+}
     
     if (stars < 1 || stars > 5) {
         alert('Stars must be between 1 and 5');

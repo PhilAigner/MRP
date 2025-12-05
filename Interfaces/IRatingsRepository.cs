@@ -16,4 +16,12 @@ public interface IRatingsRepository
     public List<Rating>? GetByStarsGreaterEqlThan(int stars);
 
     public List<Rating>? GetByStarsLowerEqlThan(int stars);
+
+    public bool UpdateRating(Rating rating);
+
+    public bool DeleteRating(Guid id);
+
+    public bool AddLike(Guid ratingId, Guid userId);
+
+    public bool RemoveLike(Guid ratingId, Guid userId);
 }

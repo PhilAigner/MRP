@@ -54,4 +54,17 @@ public class Rating
         publicVisible = false;
     }
 
+    public Rating(Guid _uuid, Guid _mediaEntry, Guid _user, int _stars, string _comment, 
+                  DateTime _createdAt, bool _publicVisible)
+    {
+        uuid = _uuid;
+        mediaEntry = _mediaEntry;
+        user = _user;
+        stars = _stars;
+        comment = _comment;
+        createdAt = _createdAt;
+        publicVisible = _publicVisible;
+        likedBy = new List<Guid>();
+    }
+
 }

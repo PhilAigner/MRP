@@ -12,4 +12,6 @@ public interface IProfileRepository
     public Profile? GetById(Guid id);
 
     public Profile? GetByOwnerId(Guid userid);
+
+    public bool UpdateProfile(Profile profile);
 }

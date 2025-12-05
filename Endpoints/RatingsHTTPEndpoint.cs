@@ -442,6 +442,7 @@ namespace MRP
                             if (profile != null)
                             {
                                 profile.numberOfReviewsWritten++;
+                                _profileRepository.UpdateProfile(profile);
                             }
                         }
                         else if (hadComment && !willHaveComment)
@@ -450,14 +451,18 @@ namespace MRP
                             if (profile != null && profile.numberOfReviewsWritten > 0)
                             {
                                 profile.numberOfReviewsWritten--;
+                                _profileRepository.UpdateProfile(profile);
                             }
                         }
                     }
 
-                    // ensure repository list contains updated object (in-memory list)
-                    var list = _ratingRepository.GetAll();
-                    list.RemoveAll(r => r.uuid == existing.uuid);
-                    list.Add(existing);
+                    // Update rating in database
+                    bool updated = _ratingRepository.UpdateRating(existing);
+                    if (!updated)
+                    {
+                        await HttpServer.Json(context.Response, 500, new { error = "Failed to update rating in database" });
+                        return;
+                    }
 
                     await HttpServer.Json(context.Response, 200, new { message = "Rating updated" });
                     return;
@@ -523,9 +528,18 @@ namespace MRP
                     {
                         profile.numberOfReviewsWritten--;
                     }
+                    
+                    _profileRepository.UpdateProfile(profile);
                 }
 
-                _ratingRepository.GetAll().RemoveAll(r => r.uuid == id);
+                // Delete rating from database
+                bool deleted = _ratingRepository.DeleteRating(id);
+                if (!deleted)
+                {
+                    await HttpServer.Json(context.Response, 500, new { error = "Failed to delete rating from database" });
+                    return;
+                }
+                
                 await HttpServer.Json(context.Response, 204, null);
                 return;
             }

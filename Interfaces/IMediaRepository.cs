@@ -14,4 +14,8 @@ public interface IMediaRepository
     public List<MediaEntry>? GetMediaByCreator(Guid userid);
 
     public Guid AddMedia(MediaEntry mediaEntry);
+
+    public bool UpdateMedia(MediaEntry mediaEntry);
+
+    public bool DeleteMedia(Guid id);
 }

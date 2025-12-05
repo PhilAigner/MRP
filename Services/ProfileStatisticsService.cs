@@ -57,6 +57,9 @@ namespace MRP
             {
                 profile.favoriteMediaType = mediaTypeCounts.MediaType.ToString();
             }
+            
+            // Save changes to database
+            _profileRepository.UpdateProfile(profile);
         }
 
         public void RecalculateStatistics(Guid userId)
@@ -76,7 +79,7 @@ namespace MRP
             var userMedia = _mediaRepository.GetMediaByCreator(userId);
             profile.numberOfMediaAdded = userMedia?.Count ?? 0;
 
-            // Update favorites
+            // Update favorites (which also saves to DB)
             UpdateFavorites(userId);
         }
     }

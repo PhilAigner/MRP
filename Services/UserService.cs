@@ -26,9 +26,19 @@ namespace MRP
             //test if user exists
             if (user != null) return Guid.Empty;
 
-            //create new user
-            User newUser = new User(username, password, profileRepository);
-            users.AddUser(newUser);
+            // Hash password before storing
+            string hashedPassword = Services.PasswordHasher.Hash(password);
+
+            //create new user with hashed password and temporary profileUuid
+            User newUser = new User(username, hashedPassword, Guid.Empty);
+            
+            //save user first (must exist before profile due to foreign key)
+            var userUuid = users.AddUser(newUser);
+            if (userUuid == Guid.Empty) return Guid.Empty;
+
+            //now create and save the profile (linked via user_uuid foreign key)
+            Profile newProfile = new Profile(newUser.uuid);
+            profileRepository.AddProfile(newProfile);
 
             return newUser.uuid;
         }
@@ -39,14 +49,15 @@ namespace MRP
             //test if user exists
             if (user == null) return null;
 
-            //check password    TODO HASH
-            if (((User)user).getPassword() == _password)
+            //verify hashed password
+            if (Services.PasswordHasher.Verify(_password, ((User)user).getPassword()))
             {
                 // Update login count
                 var profile = profileRepository.GetByOwnerId(user.uuid);
                 if (profile != null)
                 {
                     profile.numberOfLogins++;
+                    profileRepository.UpdateProfile(profile);
                 }
                 
                 // Generate and return token
@@ -64,9 +75,9 @@ namespace MRP
         public bool editProfile(Profile newProfile) {
             var profile = profileRepository.GetByOwnerId(newProfile.user);
             if (profile == null) return false;
-            profileRepository.GetAll().Remove(profile);
-            profileRepository.GetAll().Add(newProfile);
-            return true;
+            
+            // Update the profile in the database
+            return profileRepository.UpdateProfile(newProfile);
         }
     }
 }
