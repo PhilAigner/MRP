@@ -72,11 +72,20 @@ namespace MRP
                         return;
                     }
 
-                    // Return token
+                    // Get user information to include in response
+                    var user = _userRepository.GetUserByUsername(loginRequest.Username);
+                    if (user == null)
+                    {
+                        await HttpServer.Json(context.Response, 500, new { error = "User authenticated but could not be retrieved" });
+                        return;
+                    }
+
+                    // Return token and user information
                     await HttpServer.Json(context.Response, 200, new { 
                         message = "Login successful",
                         username = loginRequest.Username,
-                        token = token
+                        token = token,
+                        uuid = user.uuid  // Add user UUID to response
                     });
 
                 }

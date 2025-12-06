@@ -36,14 +36,19 @@ function loadSavedData() {
 function updateSavedDataDisplay() {
     const display = document.getElementById('savedDataDisplay');
     if (!savedData.userId && !savedData.lastViewedUserId && !savedData.mediaId && !savedData.ratingId && !savedData.token) {
-        display.innerHTML = '<p style="color: #856404;">No saved data yet. Create a user or media entry first!</p>';
+        display.innerHTML = '<p style="color: #856404;">No saved data yet. Please log in or register!</p>';
         return;
     }
     
     let html = '';
-    if (savedData.userId) {
-        html += `<div class="saved-item"><span>Registered User ID:</span> <code>${savedData.userId}</code></div>`;
+    
+    // Show logged-in user prominently
+    if (savedData.userId && savedData.token) {
+  html += `<div class="saved-item" style="background: #d4edda;"><span><strong>✓ Logged-in User ID:</strong></span> <code style="color: #155724; font-weight: bold;">${savedData.userId}</code></div>`;
+    } else if (savedData.userId) {
+        html += `<div class="saved-item"><span>User ID (not logged in):</span> <code>${savedData.userId}</code></div>`;
     }
+    
     if (savedData.lastViewedUserId && savedData.lastViewedUserId !== savedData.userId) {
         html += `<div class="saved-item"><span>Last Viewed User ID:</span> <code>${savedData.lastViewedUserId}</code></div>`;
     }
@@ -54,11 +59,16 @@ function updateSavedDataDisplay() {
         html += `<div class="saved-item"><span>Last Rating ID:</span> <code>${savedData.ratingId}</code></div>`;
     }
     if (savedData.token) {
-        html += `<div class="saved-item"><span>Auth Token:</span> <code style="color: green;">${savedData.token.substring(0, 20)}...</code></div>`;
+      html += `<div class="saved-item"><span>Auth Token:</span> <code style="color: green;">${savedData.token.substring(0, 20)}...</code></div>`;
     }
     if (savedData.username) {
         html += `<div class="saved-item"><span>Logged in as:</span> <code style="color: blue;">${savedData.username}</code></div>`;
     }
+  
+    if (!html) {
+     html = '<p style="color: #856404;">No saved data yet. Please log in or register!</p>';
+    }
+    
     display.innerHTML = html;
     
     // Update auth status
@@ -194,18 +204,19 @@ async function apiCall(endpoint, method = 'GET', body = null, requiresAuth = fal
 async function registerUser() {
     const username = document.getElementById('reg-username').value;
     const password = document.getElementById('reg-password').value;
-    
+  
     if (!username || !password) {
-        alert('Please fill in all fields');
-        return;
+alert('Please fill in all fields');
+ return;
     }
     
     const result = await apiCall('/users/register', 'POST', { username, password });
     displayResponse('register-response', result.status, result.data, result.ok);
     
+    // Note: We don't automatically set userId here anymore
+    // User should explicitly login after registration to get authenticated
     if (result.ok && result.data.user.uuid) {
-        savedData.userId = result.data.user.uuid;
-        saveData();
+        alert('Registration successful! Please login to use the system.');
     }
 }
 
@@ -225,50 +236,50 @@ async function loginUser() {
         
         // Save user ID and token after successful login
         if (result.ok && result.data.token) {
-            console.log('Login successful, token received');
-            savedData.token = result.data.token;
-            savedData.username = username;
-            
-            // Check if the user ID is directly available in the login response
-            if (result.data.uuid) {
-                console.log('User ID found in login response:', result.data.uuid);
-                savedData.userId = result.data.uuid;
-                savedData.lastViewedUserId = result.data.uuid;
-                saveData();
+         console.log('Login successful, token received');
+         savedData.token = result.data.token;
+ savedData.username = username;
+    
+         // Check if the user ID is directly available in the login response
+   if (result.data.uuid) {
+      console.log('User ID found in login response:', result.data.uuid);
+              savedData.userId = result.data.uuid;
+      savedData.lastViewedUserId = result.data.uuid;
+          saveData();
                 updateAuthStatus();
-                alert('Login successful! Token and user ID saved.');
-                return;
-            }
+     alert('Login successful! Token and user ID saved.');
+          return;
+}
             
-            // If not available in login response, try to get user ID from the profile endpoint
-            console.log('Fetching user profile to get user ID');
+       // Fallback: If uuid is not in response (shouldn't happen now), try to fetch it
+            console.warn('User ID not found in login response, attempting to fetch from profile');
             
-            // First try with username since we don't have userId yet
+  // First try with username since we don't have userId yet
             const userByName = await apiCall(`/users?username=${encodeURIComponent(username)}`, 'GET', null, true);
-            console.log('User lookup by username response:', userByName);
+         console.log('User lookup by username response:', userByName);
             
-            if (userByName.ok && userByName.data && Array.isArray(userByName.data) && userByName.data.length > 0) {
-                const userId = userByName.data[0].uuid;
-                console.log('Found user ID from username lookup:', userId);
-                savedData.userId = userId;
-                savedData.lastViewedUserId = userId;
-                saveData();
-                updateAuthStatus();
-                alert('Login successful! Token and user ID saved.');
+ if (userByName.ok && userByName.data && Array.isArray(userByName.data) && userByName.data.length > 0) {
+     const userId = userByName.data[0].uuid;
+     console.log('Found user ID from username lookup:', userId);
+        savedData.userId = userId;
+savedData.lastViewedUserId = userId;
+      saveData();
+     updateAuthStatus();
+alert('Login successful! Token and user ID saved.');
                 return;
             }
-            
-            // If that fails too, make a direct profile call
-            const profile = await apiCall('/users/profile', 'GET', null, true);
-            console.log('Profile response:', profile);
-            
-            if (profile.ok && profile.data && profile.data.user) {
-                console.log('User ID found in profile:', profile.data.user);
+    
+     // If that fails too, make a direct profile call
+       const profile = await apiCall('/users/profile', 'GET', null, true);
+          console.log('Profile response:', profile);
+      
+     if (profile.ok && profile.data && profile.data.user) {
+     console.log('User ID found in profile:', profile.data.user);
                 savedData.userId = profile.data.user;
-                savedData.lastViewedUserId = profile.data.user;
+savedData.lastViewedUserId = profile.data.user;
             }
             
-            saveData();
+    saveData();
             updateAuthStatus();
             alert('Login successful! Token saved for authenticated requests.');
         }
@@ -281,11 +292,12 @@ async function loginUser() {
 // Logout function
 function logoutUser() {
     if (confirm('Are you sure you want to log out?')) {
-        // Clear authentication data
+   // Clear authentication data and user ID
         savedData.token = '';
         savedData.username = '';
+        savedData.userId = '';  // Clear the user ID on logout
         saveData();
-        updateAuthStatus();
+     updateAuthStatus();
         alert('Logged out successfully');
     }
 }
@@ -1037,5 +1049,6 @@ async function unlikeRating() {
         displayResponse('rating-like-response', 500, { error: `Error: ${error.message}` }, false);
     }
 }
+
 
 
