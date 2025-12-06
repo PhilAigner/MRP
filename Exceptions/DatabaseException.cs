@@ -1,10 +1,6 @@
-using System;
-
 namespace MRP;
 
-/// <summary>
-/// Exception thrown when a database operation fails
-/// </summary>
+
 public class DatabaseException : Exception
 {
  public string? Operation { get; }

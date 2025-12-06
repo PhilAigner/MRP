@@ -33,11 +33,32 @@ namespace MRP
             );
 
             dbConnection = new DatabaseConnection(connectionString);
+            
+            // Test database connection
+            if (!TestDatabaseConnection())
+            {
+                throw new Exception($"Datenbankverbindung zu {db_host}:{db_port}/{db_database} fehlgeschlagen. Bitte überprüfen Sie die Verbindungsparameter und stellen Sie sicher, dass die Datenbank erreichbar ist.");
+            }
+            
+            Console.WriteLine($"✓ Datenbankverbindung erfolgreich hergestellt ({db_host}:{db_port}/{db_database})");
+  
             profileRepository = new ProfileRepository(dbConnection);
             userRepository = new UserRepository(dbConnection, profileRepository);
             mediaRepository = new MediaRepository(dbConnection, userRepository);
             ratingRepository = new RatingRepository(dbConnection);
             tokenService = new TokenService();
+        }
+
+        private bool TestDatabaseConnection()
+        {
+            try
+            {
+                return dbConnection.TestConnectionAsync().GetAwaiter().GetResult();
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public async Task<int> StartAsync()
