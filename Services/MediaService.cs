@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace MRP
 {
     internal class MediaService
@@ -83,9 +78,6 @@ namespace MRP
                     }
                     profiles.UpdateProfile(ratingUserProfile);
                 }
-                
-                // Delete rating from database (ratings are deleted by CASCADE in DB, but we still need to update the in-memory list)
-                ratings.GetAll().Remove(rating);
             }
             
             return true;
