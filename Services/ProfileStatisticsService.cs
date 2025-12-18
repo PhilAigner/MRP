@@ -6,11 +6,11 @@ namespace MRP
 {
     internal class ProfileStatisticsService
     {
-        private readonly ProfileRepository _profileRepository;
-        private readonly RatingRepository _ratingRepository;
-        private readonly MediaRepository _mediaRepository;
+        private readonly IProfileRepository _profileRepository;
+        private readonly IRatingsRepository _ratingRepository;
+        private readonly IMediaRepository _mediaRepository;
 
-        public ProfileStatisticsService(ProfileRepository profileRepository, RatingRepository ratingRepository, MediaRepository mediaRepository)
+        public ProfileStatisticsService(IProfileRepository profileRepository, IRatingsRepository ratingRepository, IMediaRepository mediaRepository)
         {
             _profileRepository = profileRepository;
             _ratingRepository = ratingRepository;

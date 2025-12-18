@@ -8,12 +8,12 @@ namespace MRP
 {
     internal class RatingService
     {
-        private RatingRepository ratings;
-        private ProfileRepository profiles;
-        private MediaRepository media;
+        private IRatingsRepository ratings;
+        private IProfileRepository profiles;
+        private IMediaRepository media;
         private ProfileStatisticsService statisticsService;
 
-        public RatingService(RatingRepository _ratings, ProfileRepository _profiles, MediaRepository _media)
+        public RatingService(IRatingsRepository _ratings, IProfileRepository _profiles, IMediaRepository _media)
         {
             ratings = _ratings;
             profiles = _profiles;

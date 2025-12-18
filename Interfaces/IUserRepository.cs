@@ -10,4 +10,6 @@ public interface IUserRepository
     public User? GetUserById(Guid id);
 
     public Guid AddUser(User user);
+
+    public User? GetUserByUsername(string username);
 }

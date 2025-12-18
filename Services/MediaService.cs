@@ -4,11 +4,11 @@ namespace MRP
     internal class MediaService
     {
 
-        private MediaRepository media;
-        private RatingRepository ratings;
-        private ProfileRepository profiles;
+        private IMediaRepository media;
+        private IRatingsRepository ratings;
+        private IProfileRepository profiles;
 
-        public MediaService(MediaRepository _media, RatingRepository _ratings, ProfileRepository _profiles)
+        public MediaService(IMediaRepository _media, IRatingsRepository _ratings, IProfileRepository _profiles)
         {
             media = _media;
             ratings = _ratings;

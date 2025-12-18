@@ -134,7 +134,7 @@ public class UserRepository : IUserRepository {
         }
     }
 
-    internal User? GetUserByUsername(string username)
+    public User? GetUserByUsername(string username)
     {
         // Validate input
         if (string.IsNullOrWhiteSpace(username))

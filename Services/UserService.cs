@@ -9,11 +9,11 @@ namespace MRP
     internal class UserService
     {
 
-        private UserRepository users;
-        private ProfileRepository profileRepository;
+        private IUserRepository users;
+        private IProfileRepository profileRepository;
         private TokenService tokenService;
 
-        public UserService(UserRepository _users, ProfileRepository _profileRepository, TokenService _tokenService)
+        public UserService(IUserRepository _users, IProfileRepository _profileRepository, TokenService _tokenService)
         {
             users = _users;
             profileRepository = _profileRepository;
