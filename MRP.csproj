@@ -10,6 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="MRP.Test" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="postman\**" />
     <EmbeddedResource Remove="postman\**" />
     <None Remove="postman\**" />
