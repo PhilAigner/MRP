@@ -2,7 +2,8 @@ using Npgsql;
 
 namespace MRP;
 
-public class ProfileRepository :  IProfileRepository {
+public class ProfileRepository : IProfileRepository
+{
 
     private readonly DatabaseConnection _dbConnection;
 
@@ -11,7 +12,8 @@ public class ProfileRepository :  IProfileRepository {
         _dbConnection = dbConnection;
     }
 
-    public List<Profile> GetAll() { 
+    public List<Profile> GetAll()
+    {
         var profiles = new List<Profile>();
         using var connection = _dbConnection.CreateConnection();
         connection.Open();
@@ -41,27 +43,28 @@ public class ProfileRepository :  IProfileRepository {
         return profiles;
     }
 
-    public Guid AddProfile(Profile profile) {
+    public Guid AddProfile(Profile profile)
+    {
         // Validate input
         if (profile == null)
             throw new ArgumentNullException(nameof(profile), "Profile cannot be null");
-        
+
         if (profile.uuid == Guid.Empty)
             throw new ArgumentException("Profile UUID cannot be empty", nameof(profile));
-        
+
         if (profile.user == Guid.Empty)
             throw new ArgumentException("User UUID cannot be empty", nameof(profile));
-        
+
         // Validate statistics are non-negative
         if (profile.numberOfLogins < 0)
             throw new ArgumentOutOfRangeException(nameof(profile), "Number of logins cannot be negative");
-        
+
         if (profile.numberOfRatingsGiven < 0)
             throw new ArgumentOutOfRangeException(nameof(profile), "Number of ratings given cannot be negative");
-        
+
         if (profile.numberOfMediaAdded < 0)
             throw new ArgumentOutOfRangeException(nameof(profile), "Number of media added cannot be negative");
-        
+
         if (profile.numberOfReviewsWritten < 0)
             throw new ArgumentOutOfRangeException(nameof(profile), "Number of reviews written cannot be negative");
 
@@ -94,9 +97,9 @@ public class ProfileRepository :  IProfileRepository {
     {
         // Validate input
         if (id == Guid.Empty)
-   throw new ArgumentException("Profile ID cannot be empty", nameof(id));
+            throw new ArgumentException("Profile ID cannot be empty", nameof(id));
 
-    using var connection = _dbConnection.CreateConnection();
+        using var connection = _dbConnection.CreateConnection();
         connection.Open();
 
         using var cmd = new NpgsqlCommand(
@@ -132,8 +135,8 @@ public class ProfileRepository :  IProfileRepository {
         if (userid == Guid.Empty)
             throw new ArgumentException("User ID cannot be empty", nameof(userid));
 
-      using var connection = _dbConnection.CreateConnection();
-      connection.Open();
+        using var connection = _dbConnection.CreateConnection();
+        connection.Open();
 
         using var cmd = new NpgsqlCommand(
             "SELECT uuid, user_uuid, number_of_logins, number_of_ratings_given, number_of_media_added, " +
@@ -166,22 +169,22 @@ public class ProfileRepository :  IProfileRepository {
         // Validate input
         if (profile == null)
             throw new ArgumentNullException(nameof(profile), "Profile cannot be null");
-        
+
         if (profile.uuid == Guid.Empty)
             throw new ArgumentException("Profile UUID cannot be empty", nameof(profile));
-        
+
         // Validate statistics are non-negative
         if (profile.numberOfLogins < 0)
-  throw new ArgumentOutOfRangeException(nameof(profile), "Number of logins cannot be negative");
-    
-    if (profile.numberOfRatingsGiven < 0)
-        throw new ArgumentOutOfRangeException(nameof(profile), "Number of ratings given cannot be negative");
-  
-    if (profile.numberOfMediaAdded < 0)
-     throw new ArgumentOutOfRangeException(nameof(profile), "Number of media added cannot be negative");
-    
-  if (profile.numberOfReviewsWritten < 0)
-        throw new ArgumentOutOfRangeException(nameof(profile), "Number of reviews written cannot be negative");
+            throw new ArgumentOutOfRangeException(nameof(profile), "Number of logins cannot be negative");
+
+        if (profile.numberOfRatingsGiven < 0)
+            throw new ArgumentOutOfRangeException(nameof(profile), "Number of ratings given cannot be negative");
+
+        if (profile.numberOfMediaAdded < 0)
+            throw new ArgumentOutOfRangeException(nameof(profile), "Number of media added cannot be negative");
+
+        if (profile.numberOfReviewsWritten < 0)
+            throw new ArgumentOutOfRangeException(nameof(profile), "Number of reviews written cannot be negative");
 
         using var connection = _dbConnection.CreateConnection();
         connection.Open();
@@ -189,22 +192,21 @@ public class ProfileRepository :  IProfileRepository {
         using var cmd = new NpgsqlCommand(
             "UPDATE profiles SET number_of_logins = @logins, number_of_ratings_given = @ratings, " +
             "number_of_media_added = @media, number_of_reviews_written = @reviews, " +
-   "favorite_genre = @genre, favorite_media_type = @mediaType, " +
-   "sobriquet = @sobriquet, about_me = @aboutMe " +
- "WHERE uuid = @uuid",
-      connection);
+            "favorite_genre = @genre, favorite_media_type = @mediaType, " +
+            "sobriquet = @sobriquet, about_me = @aboutMe " +
+            "WHERE uuid = @uuid", connection);
 
-    cmd.Parameters.AddWithValue("uuid", profile.uuid);
-    cmd.Parameters.AddWithValue("logins", profile.numberOfLogins);
-    cmd.Parameters.AddWithValue("ratings", profile.numberOfRatingsGiven);
-    cmd.Parameters.AddWithValue("media", profile.numberOfMediaAdded);
-    cmd.Parameters.AddWithValue("reviews", profile.numberOfReviewsWritten);
-    cmd.Parameters.AddWithValue("genre", profile.favoriteGenre ?? string.Empty);
-    cmd.Parameters.AddWithValue("mediaType", profile.favoriteMediaType ?? string.Empty);
-    cmd.Parameters.AddWithValue("sobriquet", profile.sobriquet ?? string.Empty);
-    cmd.Parameters.AddWithValue("aboutMe", profile.aboutMe ?? string.Empty);
+        cmd.Parameters.AddWithValue("uuid", profile.uuid);
+        cmd.Parameters.AddWithValue("logins", profile.numberOfLogins);
+        cmd.Parameters.AddWithValue("ratings", profile.numberOfRatingsGiven);
+        cmd.Parameters.AddWithValue("media", profile.numberOfMediaAdded);
+        cmd.Parameters.AddWithValue("reviews", profile.numberOfReviewsWritten);
+        cmd.Parameters.AddWithValue("genre", profile.favoriteGenre ?? string.Empty);
+        cmd.Parameters.AddWithValue("mediaType", profile.favoriteMediaType ?? string.Empty);
+        cmd.Parameters.AddWithValue("sobriquet", profile.sobriquet ?? string.Empty);
+        cmd.Parameters.AddWithValue("aboutMe", profile.aboutMe ?? string.Empty);
 
-    var rowsAffected = cmd.ExecuteNonQuery();
-    return rowsAffected > 0;
+        var rowsAffected = cmd.ExecuteNonQuery();
+        return rowsAffected > 0;
     }
 }

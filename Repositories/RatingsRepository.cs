@@ -45,7 +45,6 @@ public class RatingRepository :  IRatingsRepository {
 
         connection.Close();
 
-        // Batch load all likes in one query instead of N queries
         if (ratings.Any())
         {
             LoadLikedByBatch(ratings);

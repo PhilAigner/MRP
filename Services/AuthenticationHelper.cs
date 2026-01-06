@@ -1,4 +1,3 @@
-using System;
 using System.Net;
 
 namespace MRP
@@ -36,12 +35,12 @@ namespace MRP
             return true;
         }
 
-        public static async System.Threading.Tasks.Task SendUnauthorizedResponse(HttpListenerResponse response)
+        public static async Task SendUnauthorizedResponse(HttpListenerResponse response)
         {
             await HttpServer.Json(response, 401, new { error = "Unauthorized. Please provide a valid Bearer token." });
         }
 
-        public static async System.Threading.Tasks.Task SendForbiddenResponse(HttpListenerResponse response)
+        public static async Task SendForbiddenResponse(HttpListenerResponse response)
         {
             await HttpServer.Json(response, 403, new { error = "Forbidden. You don't have permission to access this resource." });
         }

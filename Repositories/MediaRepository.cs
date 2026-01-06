@@ -1,5 +1,4 @@
 using Npgsql;
-using System.Data;
 
 namespace MRP;
 
@@ -54,7 +53,6 @@ public class MediaRepository :  IMediaRepository {
                 mediaEntries.Add(entry);
             }
         }
-
 
         return mediaEntries;
     }
