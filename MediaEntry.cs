@@ -35,7 +35,7 @@ public class MediaEntry
         createdBy = creator;
         
         ratings =  new List<Rating>();
-        averageScore = (float) 0;
+        averageScore = (float) 0.0;
     }
 
     public MediaEntry(Guid _uuid, string _title, string _description, EMediaType _mediaType, 
@@ -52,6 +52,6 @@ public class MediaEntry
         createdAt = _createdAt;
         createdBy = _createdBy;
         ratings = new List<Rating>();
-        averageScore = (float) 0;
+        averageScore = (float) 0.0;
     }
 }

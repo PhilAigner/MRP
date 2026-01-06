@@ -1,6 +1,5 @@
-using System;
+namespace MRP
 
-namespace MRP.Services
 {
     public static class PasswordHasher
     {

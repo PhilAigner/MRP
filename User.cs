@@ -1,6 +1,3 @@
-using System;
-using System.Runtime;
-
 namespace MRP;
 
 public class User
@@ -34,10 +31,8 @@ public class User
 		profileUuid = _profileUuid;
 	}
 
-
 	public string getPassword()
 	{
 		return password;
-	}
-	
+	}	
 }

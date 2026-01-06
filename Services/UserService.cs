@@ -27,7 +27,7 @@ namespace MRP
             if (user != null) return Guid.Empty;
 
             // Hash password before storing
-            string hashedPassword = Services.PasswordHasher.Hash(password);
+            string hashedPassword = PasswordHasher.Hash(password);
 
             //create new user with hashed password and temporary profileUuid
             User newUser = new User(username, hashedPassword, Guid.Empty);
@@ -50,7 +50,7 @@ namespace MRP
             if (user == null) return null;
 
             //verify hashed password
-            if (Services.PasswordHasher.Verify(_password, ((User)user).getPassword()))
+            if (PasswordHasher.Verify(_password, ((User)user).getPassword()))
             {
                 // Update login count
                 var profile = profileRepository.GetByOwnerId(user.uuid);

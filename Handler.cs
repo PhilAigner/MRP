@@ -40,7 +40,7 @@ namespace MRP
                 throw new Exception($"Datenbankverbindung zu {db_host}:{db_port}/{db_database} fehlgeschlagen. Bitte überprüfen Sie die Verbindungsparameter und stellen Sie sicher, dass die Datenbank erreichbar ist.");
             }
             
-            Console.WriteLine($"✓ Datenbankverbindung erfolgreich hergestellt ({db_host}:{db_port}/{db_database})");
+            Console.WriteLine($"Datenbankverbindung erfolgreich hergestellt ({db_host}:{db_port}/{db_database})");
   
             profileRepository = new ProfileRepository(dbConnection);
             userRepository = new UserRepository(dbConnection, profileRepository);

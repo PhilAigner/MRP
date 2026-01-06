@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime;
-
-namespace MRP;
+﻿namespace MRP;
 
 public class Rating
 {
@@ -66,5 +62,4 @@ public class Rating
         publicVisible = _publicVisible;
         likedBy = new List<Guid>();
     }
-
 }

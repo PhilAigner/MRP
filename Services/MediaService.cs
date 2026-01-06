@@ -1,5 +1,5 @@
-﻿
-namespace MRP
+﻿namespace MRP
+
 {
     internal class MediaService
     {
