@@ -10,6 +10,24 @@
 			"name": "1. Setup - Create Test User",
 			"event": [
 				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Generate unique username for this test run",
+							"const timestamp = Date.now();",
+							"const randomNum = Math.floor(Math.random() * 10000);",
+							"const username = `testuser_${timestamp}_${randomNum}`;",
+							"",
+							"// Store the username and password for later use",
+							"pm.collectionVariables.set('testUsername', username);",
+							"pm.collectionVariables.set('testPassword', 'testpassword123');",
+							"",
+							"console.log('Generated username: ' + username);"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
 					"listen": "test",
 					"script": {
 						"exec": [
@@ -44,7 +62,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"testpassword123\"\n}",
+					"raw": "{\n    \"username\": \"{{testUsername}}\",\n    \"password\": \"{{testPassword}}\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -106,7 +124,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"testpassword123\"\n}",
+					"raw": "{\n    \"username\": \"{{testUsername}}\",\n    \"password\": \"{{testPassword}}\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -840,6 +858,18 @@
 			"value": "00000000-0000-0000-0000-000000000000",
 			"type": "string",
 			"description": "UUID of the rating being manipulated"
+		},
+		{
+			"key": "testUsername",
+			"value": "",
+			"type": "string",
+			"description": "Dynamically generated username for the test"
+		},
+		{
+			"key": "testPassword",
+			"value": "testpassword123",
+			"type": "string",
+			"description": "Password for the test user"
 		}
 	]
 }
