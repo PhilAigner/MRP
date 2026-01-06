@@ -1,4 +1,4 @@
-# Philipp Aigner - Media Rating Platform (MRP) - Intermediate Hand in
+# Philipp Aigner - Media Rating Platform (MRP) - Final Hand in
 
 ## Git Link
 
