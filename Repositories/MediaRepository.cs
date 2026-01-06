@@ -80,7 +80,8 @@ public class MediaRepository :  IMediaRepository {
         }
         catch (Exception ex)
         {
-            throw new DatabaseException(
+            throw new 
+                (
                 "Failed to retrieve media entry by ID",
                 ex
             );

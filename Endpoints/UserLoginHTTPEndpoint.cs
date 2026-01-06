@@ -85,7 +85,7 @@ namespace MRP
                         message = "Login successful",
                         username = loginRequest.Username,
                         token = token,
-                        uuid = user.uuid  // Add user UUID to response
+                        uuid = user.uuid
                     });
 
                 }

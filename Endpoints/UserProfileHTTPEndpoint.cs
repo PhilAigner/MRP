@@ -1,10 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MRP
 {
@@ -113,7 +108,7 @@ namespace MRP
                 return;
             }
 
-            // PUT: Update profile | NEEDS to be logged in and ownership - only sobriquet and aboutMe can be updated
+            // PUT: Update profile | NEEDS to be logged in and ownership &&  only sobriquet and about can be updated
             if (req.HttpMethod.Equals("PUT", StringComparison.OrdinalIgnoreCase))
             {
                 // Check authentication

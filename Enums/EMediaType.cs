@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace MRP;
+﻿namespace MRP;
 
 public enum EMediaType
 {
